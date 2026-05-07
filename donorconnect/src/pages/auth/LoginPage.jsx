@@ -39,6 +39,23 @@ export default function LoginPage() {
       <div style={{ position:'fixed', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(193,18,31,0.07) 0%, transparent 70%)', top:-100, left:-100, pointerEvents:'none' }}></div>
       <div style={{ position:'fixed', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle, rgba(139,0,0,0.05) 0%, transparent 70%)', bottom:-80, right:-80, pointerEvents:'none' }}></div>
       <div className="login-card animate-fadeup">
+        {/* Back to Home */}
+        <Link to="/" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: 'var(--text-muted)', textDecoration: 'none',
+          fontSize: '0.8rem', fontWeight: 600,
+          marginBottom: 20,
+          transition: 'color 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--crimson)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Home
+        </Link>
+
         <div style={{ textAlign:'center', marginBottom:28 }}>
           <div className="login-logo">🩸</div>
           <h4 style={{ fontFamily:'Sora', fontWeight:800, fontSize:'1.6rem', marginBottom:4 }}>Welcome Back</h4>
