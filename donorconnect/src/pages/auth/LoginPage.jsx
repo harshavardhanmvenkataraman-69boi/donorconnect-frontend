@@ -20,13 +20,12 @@ export default function LoginPage() {
       localStorage.setItem('token', token);
       localStorage.setItem('userName', name || '');
 
-      if (role === 'ROLE_DONOR') navigate('/dashboard/my');
-      else if (role === 'ROLE_ADMIN') navigate('/dashboard/admin');
-      else if (role === 'ROLE_RECEPTION') navigate('/dashboard/donors');
-      else if (role === 'ROLE_PHLEBOTOMIST') navigate('/dashboard/screenings');
-      else if (role === 'ROLE_LAB_TECHNICIAN') navigate('/dashboard/donations');
+      if (role === 'ROLE_ADMIN')                navigate('/dashboard/admin');
+      else if (role === 'ROLE_RECEPTION')       navigate('/dashboard/donors');
+      else if (role === 'ROLE_PHLEBOTOMIST')    navigate('/dashboard/screenings');
+      else if (role === 'ROLE_LAB_TECHNICIAN')  navigate('/dashboard/donations');
       else if (role === 'ROLE_INVENTORY_CONTROLLER') navigate('/dashboard/inventory');
-      else if (role === 'ROLE_TRANSFUSION_OFFICER') navigate('/dashboard/crossmatch');
+      else if (role === 'ROLE_TRANSFUSION_OFFICER')  navigate('/dashboard/crossmatch');
       else navigate('/dashboard/admin');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password.');

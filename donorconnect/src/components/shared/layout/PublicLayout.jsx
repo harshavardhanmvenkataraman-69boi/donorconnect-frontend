@@ -20,8 +20,8 @@ export default function PublicLayout() {
                 } style={{ fontSize: '0.875rem', fontWeight: 500 }}>{label}</NavLink>
               ))}
             </Nav>
-            <Link to="/login">
-              <button className="btn-crimson">Login →</button>
+            <Link to="/dashboard/donors/register">
+              <button className="btn-crimson">Register →</button>
             </Link>
           </Navbar.Collapse>
         </Container>
