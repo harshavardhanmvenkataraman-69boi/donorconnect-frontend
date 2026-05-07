@@ -27,10 +27,10 @@ const FACTS = {
 };
 
 const TYPE_COLORS = {
-  'A+': '#E63946', 'A-': '#C1121F',
-  'B+': '#3498DB', 'B-': '#2471A3',
-  'AB+':'#8B0000', 'AB-':'#6B0F1A',
-  'O+': '#27AE60', 'O-': '#1E8449',
+  'A+':  '#EC2D01', 'A-':  '#EC2D01',
+  'B+':  '#EC2D01', 'B-':  '#EC2D01',
+  'AB+': '#EC2D01', 'AB-': '#EC2D01',
+  'O+':  '#EC2D01', 'O-':  '#EC2D01',
 };
 
 function BloodTypePill({ type, dim }) {
@@ -205,12 +205,40 @@ export default function AwarenessPage() {
       `}</style>
 
       <Container>
-        <div className="glass-card p-5 mb-5" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 12 }}>🩸</div>
-          <h1 style={{ fontFamily: 'Sora', fontWeight: 800 }}>Blood Donation Awareness</h1>
-          <p style={{ color: 'var(--text-muted)', maxWidth: 500, margin: '12px auto 0', lineHeight: 1.7 }}>
-            Every two seconds, someone needs blood. Learn how your donation saves lives.
+        <div style={{ marginBottom: 56, padding: '20px 0' }}>
+
+          {/* Badge pill */}
+          {/* <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'var(--crimson-pale)', borderRadius: 50,
+            padding: '6px 18px', marginBottom: 20,
+          }}>
+            <span style={{ fontSize: '0.85rem' }}>🩸</span>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--crimson)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Save Lives · Donate Blood</span>
+          </div> */}
+
+          {/* Heading — full left, single line */}
+          <h1 style={{
+            fontFamily: 'Sora', fontWeight: 900,
+            fontSize: 'clamp(2.2rem, 4vw, 3.4rem)',
+            color: 'var(--text-primary)', lineHeight: 1.15,
+            whiteSpace: 'nowrap',
+            marginBottom: 16,
+          }}>
+            Blood Donation <span style={{ color: 'var(--crimson)' }}>Awareness</span>
+          </h1>
+
+          {/* Subtext — starts from left */}
+          <p style={{
+            color: 'var(--text-secondary)',
+            lineHeight: 1.85, fontSize: '1.05rem',
+            margin: 0, maxWidth: 520,
+          }}>
+            Every two seconds, someone in the world needs blood.
+            A single donation can save up to <strong style={{ color: 'var(--text-primary)' }}>3 lives</strong> —
+            and it only takes an hour of your time.
           </p>
+
         </div>
 
         <Row className="g-4 mb-5">
@@ -235,38 +263,111 @@ export default function AwarenessPage() {
             Click any blood type to see full donation &amp; compatibility details
           </p>
           <Row className="g-3">
-            {bloodTypes.map(t => (
-              <Col key={t} xs={6} sm={3} md={3}>
-                <button
-                  onClick={() => setSelected(t)}
-                  style={{
-                    width: '100%', background: 'var(--crimson-pale)',
-                    borderRadius: 12, padding: '20px 12px', textAlign: 'center',
-                    border: '2px solid transparent', cursor: 'pointer',
-                    transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                    position: 'relative', overflow: 'hidden',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = `${TYPE_COLORS[t]}18`;
-                    e.currentTarget.style.borderColor = `${TYPE_COLORS[t]}60`;
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.boxShadow = `0 8px 24px ${TYPE_COLORS[t]}25`;
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'var(--crimson-pale)';
-                    e.currentTarget.style.borderColor = 'transparent';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ fontFamily: 'Sora', fontSize: '1.8rem', fontWeight: 800, color: TYPE_COLORS[t] }}>{t}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 4 }}>Blood Group</div>
-                  <div style={{ fontSize: '0.65rem', color: TYPE_COLORS[t], marginTop: 6, opacity: 0.8, fontWeight: 600 }}>
-                    tap to explore →
-                  </div>
-                </button>
-              </Col>
-            ))}
+            {bloodTypes.map(t => {
+              const group  = t.replace(/[+-]/, '');
+              const sign   = t.includes('+') ? '+' : '−';
+              const color  = TYPE_COLORS[t];
+              return (
+                <Col key={t} xs={6} sm={3} md={3}>
+                  <button
+                    onClick={() => setSelected(t)}
+                    style={{
+                      width: '100%', background: 'var(--crimson-pale)',
+                      borderRadius: 16, padding: '22px 12px 16px', textAlign: 'center',
+                      border: '2px solid transparent', cursor: 'pointer',
+                      transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = `${color}15`;
+                      e.currentTarget.style.borderColor = `${color}55`;
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = `0 10px 28px ${color}30`;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'var(--crimson-pale)';
+                      e.currentTarget.style.borderColor = 'transparent';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {/* SVG blood drop with group label inside + sign as superscript corner */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                      <svg
+                        viewBox="0 0 80 100"
+                        width="72" height="90"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        {/* Drop shadow filter */}
+                        <defs>
+                          <filter id={`shadow-${t}`} x="-20%" y="-10%" width="140%" height="130%">
+                            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor={color} floodOpacity="0.25" />
+                          </filter>
+                          {/* Shine gradient */}
+                          <radialGradient id={`shine-${t}`} cx="38%" cy="28%" r="52%">
+                            <stop offset="0%"   stopColor="white" stopOpacity="0.45" />
+                            <stop offset="100%" stopColor={color}  stopOpacity="0" />
+                          </radialGradient>
+                        </defs>
+
+                        {/* Drop body — filled */}
+                        <path
+                          d="M40 6 C40 6, 8 46, 8 65 C8 83.5 22.5 96 40 96 C57.5 96 72 83.5 72 65 C72 46 40 6 40 6 Z"
+                          fill={color}
+                          filter={`url(#shadow-${t})`}
+                        />
+                        {/* Shine overlay */}
+                        <path
+                          d="M40 6 C40 6, 8 46, 8 65 C8 83.5 22.5 96 40 96 C57.5 96 72 83.5 72 65 C72 46 40 6 40 6 Z"
+                          fill={`url(#shine-${t})`}
+                        />
+                        {/* Small inner highlight */}
+                        <ellipse cx="28" cy="50" rx="7" ry="11"
+                          fill="white" opacity="0.18"
+                          transform="rotate(-20 28 50)"
+                        />
+
+                        {/* Blood group text — adjust size for AB vs single letters */}
+                        <text
+                          x="38" y={group.length >= 2 ? '68' : '70'}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fontFamily="Sora, sans-serif"
+                          fontWeight="900"
+                          fontSize={group === 'AB' ? '24' : '28'}
+                          fill="white"
+                          style={{ letterSpacing: group === 'AB' ? '-1px' : '0' }}
+                        >
+                          {group}
+                        </text>
+
+                        {/* +/− as superscript at top-right corner of drop */}
+                        <circle
+                          cx="66" cy="20" r="14"
+                          fill="white"
+                          opacity="0.95"
+                        />
+                        <text
+                          x="66" y="21"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fontFamily="Sora, sans-serif"
+                          fontWeight="900"
+                          fontSize="17"
+                          fill={color}
+                        >
+                          {sign}
+                        </text>
+                      </svg>
+                    </div>
+
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                      tap to explore
+                    </div>
+                  </button>
+                </Col>
+              );
+            })}
           </Row>
         </div>
 

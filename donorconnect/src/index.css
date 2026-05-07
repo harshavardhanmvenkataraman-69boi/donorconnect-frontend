@@ -30,6 +30,7 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --font-display: 'Sora', sans-serif;
   --font-body: 'DM Sans', sans-serif;
+  --blood:"#8A0303";
 }
 
 * { box-sizing: border-box; }
