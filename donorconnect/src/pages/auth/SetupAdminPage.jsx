@@ -39,7 +39,7 @@ export default function SetupAdminPage() {
       <div className="login-card animate-fadeup" style={{ width:460 }}>
         <div style={{ textAlign:'center', marginBottom:24 }}>
           <div className="login-logo" style={{ fontSize:'1.4rem' }}>⚙️</div>
-          <h4 style={{ fontFamily:'Sora', fontWeight:800, fontSize:'1.5rem', marginBottom:4 }}>First Time Setup</h4>
+          <h4 style={{ fontFamily:'Sora', fontWeight:800, fontSize:'1.5rem', marginBottom:4 }}>Setup Admin</h4>
           <p style={{ color:'var(--text-muted)', fontSize:'0.875rem', lineHeight:1.5 }}>
             Create the initial admin account — <strong>one time only</strong>.
           </p>
