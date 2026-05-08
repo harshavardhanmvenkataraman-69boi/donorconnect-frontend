@@ -74,10 +74,27 @@ export default function LoginPage() {
             {loading ? <span style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'center' }}><span className="spinner-border spinner-border-sm" style={{ borderColor:'rgba(255,255,255,0.3)', borderTopColor:'white' }}></span>Signing in...</span> : 'Sign In →'}
           </button>
         </form>
-        <div style={{ textAlign:'center', marginTop:20, display:'flex', justifyContent:'center', gap:16 }}>
-          <Link to="/forgot-password" style={{ color:'var(--crimson)', fontSize:'0.8rem', textDecoration:'none', fontWeight:500 }}>Forgot password?</Link>
-          <span style={{ color:'var(--text-muted)' }}>|</span>
-          <Link to="/setup" style={{ color:'var(--text-muted)', fontSize:'0.8rem', textDecoration:'none' }}>First time setup</Link>
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Divider */}
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ flex:1, height:1, background:'var(--border-light)' }} />
+            <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', fontWeight:500 }}>or</span>
+            <div style={{ flex:1, height:1, background:'var(--border-light)' }} />
+          </div>
+
+          {/* Register button */}
+          <Link to="/register">
+            <button className="btn-glass w-100 justify-content-center" style={{ padding:'11px', fontSize:'0.9rem', fontWeight:600 }}>
+              Create an Account
+            </button>
+          </Link>
+
+          {/* Forgot password */}
+          <div style={{ textAlign:'center' }}>
+            <Link to="/forgot-password" style={{ color:'var(--crimson)', fontSize:'0.82rem', textDecoration:'none', fontWeight:500 }}>
+              Forgot your password?
+            </Link>
+          </div>
         </div>
       </div>
     </div>

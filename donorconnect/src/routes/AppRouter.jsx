@@ -16,6 +16,7 @@ import LoginPage from '../pages/auth/LoginPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 import SetupAdminPage from '../pages/auth/SetupAdminPage';
+import RegisterPage from '../pages/auth/RegisterPage';
 
 // Admin
 import AdminOverviewPage from '../pages/admin/AdminOverviewPage';
@@ -77,6 +78,7 @@ export default function AppRouter() {
         {/* AUTH */}
         <Route path="/login"            element={<LoginPage />} />
         <Route path="/setup"            element={<SetupAdminPage />} />
+        <Route path="/register"         element={<RegisterPage />} />
         <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
         <Route path="/reset-password"   element={<ResetPasswordPage />} />
 
