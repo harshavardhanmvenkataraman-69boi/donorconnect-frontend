@@ -1,0 +1,7 @@
+export { default as DonorListPage }     from './DonorListPage.jsx'
+export { default as DonorRegisterPage } from './DonorRegisterPage.jsx'
+export { default as DonorViewPage }     from './DonorViewPage.jsx'
+export { default as AppointmentsPage }  from './AppointmentsPage.jsx'
+export { default as DrivesPage }        from './DrivesPage.jsx'
+export { default as DeferralsPage }     from './DeferralsPage.jsx'
+export { default as ScreeningPage }     from './ScreeningPage.jsx'
