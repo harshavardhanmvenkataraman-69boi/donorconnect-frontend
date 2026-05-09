@@ -130,10 +130,10 @@ export function AwarenessPage() {
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, marginBottom: 20, color: 'var(--crimson-light)' }}>Who Can Donate?</h3>
         <div className="grid-2">
           {[
-            ['✓ Age 18–65 years', 'success'],
+            ['✓ Age 18-65 years', 'success'],
             ['✓ Weight ≥ 45 kg', 'success'],
             ['✓ Hemoglobin ≥ 12.5 g/dL', 'success'],
-            ['✓ BP: 100–180 / 60–100 mmHg', 'success'],
+            ['✓ BP: 100-180 / 60-100 mmHg', 'success'],
             ['✗ Recent illness/surgery', 'danger'],
             ['✗ Pregnancy or lactation', 'danger'],
             ['✗ Recent tattoo/piercing (6mo)', 'danger'],

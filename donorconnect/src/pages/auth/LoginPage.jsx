@@ -20,13 +20,12 @@ export default function LoginPage() {
       localStorage.setItem('token', token);
       localStorage.setItem('userName', name || '');
 
-      if (role === 'ROLE_DONOR') navigate('/dashboard/my');
-      else if (role === 'ROLE_ADMIN') navigate('/dashboard/admin');
-      else if (role === 'ROLE_RECEPTION') navigate('/dashboard/donors');
-      else if (role === 'ROLE_PHLEBOTOMIST') navigate('/dashboard/screenings');
-      else if (role === 'ROLE_LAB_TECHNICIAN') navigate('/dashboard/donations');
+      if (role === 'ROLE_ADMIN')                navigate('/dashboard/admin');
+      else if (role === 'ROLE_RECEPTION')       navigate('/dashboard/donors');
+      else if (role === 'ROLE_PHLEBOTOMIST')    navigate('/dashboard/screenings');
+      else if (role === 'ROLE_LAB_TECHNICIAN')  navigate('/dashboard/donations');
       else if (role === 'ROLE_INVENTORY_CONTROLLER') navigate('/dashboard/inventory');
-      else if (role === 'ROLE_TRANSFUSION_OFFICER') navigate('/dashboard/crossmatch');
+      else if (role === 'ROLE_TRANSFUSION_OFFICER')  navigate('/dashboard/crossmatch');
       else navigate('/dashboard/admin');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password.');
@@ -39,6 +38,23 @@ export default function LoginPage() {
       <div style={{ position:'fixed', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(193,18,31,0.07) 0%, transparent 70%)', top:-100, left:-100, pointerEvents:'none' }}></div>
       <div style={{ position:'fixed', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle, rgba(139,0,0,0.05) 0%, transparent 70%)', bottom:-80, right:-80, pointerEvents:'none' }}></div>
       <div className="login-card animate-fadeup">
+        {/* Back to Home */}
+        <Link to="/" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: 'var(--text-muted)', textDecoration: 'none',
+          fontSize: '0.8rem', fontWeight: 600,
+          marginBottom: 20,
+          transition: 'color 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--crimson)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Home
+        </Link>
+
         <div style={{ textAlign:'center', marginBottom:28 }}>
           <div className="login-logo">🩸</div>
           <h4 style={{ fontFamily:'Sora', fontWeight:800, fontSize:'1.6rem', marginBottom:4 }}>Welcome Back</h4>
@@ -58,10 +74,27 @@ export default function LoginPage() {
             {loading ? <span style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'center' }}><span className="spinner-border spinner-border-sm" style={{ borderColor:'rgba(255,255,255,0.3)', borderTopColor:'white' }}></span>Signing in...</span> : 'Sign In →'}
           </button>
         </form>
-        <div style={{ textAlign:'center', marginTop:20, display:'flex', justifyContent:'center', gap:16 }}>
-          <Link to="/forgot-password" style={{ color:'var(--crimson)', fontSize:'0.8rem', textDecoration:'none', fontWeight:500 }}>Forgot password?</Link>
-          <span style={{ color:'var(--text-muted)' }}>|</span>
-          <Link to="/setup" style={{ color:'var(--text-muted)', fontSize:'0.8rem', textDecoration:'none' }}>First time setup</Link>
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Divider */}
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ flex:1, height:1, background:'var(--border-light)' }} />
+            <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', fontWeight:500 }}>or</span>
+            <div style={{ flex:1, height:1, background:'var(--border-light)' }} />
+          </div>
+
+          {/* Register button */}
+          <Link to="/register">
+            <button className="btn-glass w-100 justify-content-center" style={{ padding:'11px', fontSize:'0.9rem', fontWeight:600 }}>
+              Create an Account
+            </button>
+          </Link>
+
+          {/* Forgot password */}
+          <div style={{ textAlign:'center' }}>
+            <Link to="/forgot-password" style={{ color:'var(--crimson)', fontSize:'0.82rem', textDecoration:'none', fontWeight:500 }}>
+              Forgot your password?
+            </Link>
+          </div>
         </div>
       </div>
     </div>
