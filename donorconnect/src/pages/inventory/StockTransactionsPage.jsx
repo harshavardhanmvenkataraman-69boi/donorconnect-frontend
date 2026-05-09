@@ -1,59 +1,181 @@
-import { useState, useEffect } from 'react';
-import { Modal, Row, Col } from 'react-bootstrap';
-import api from '../../api/axiosInstance';
-import PageHeader from '../../components/shared/ui/PageHeader';
-import DataTable from '../../components/shared/ui/DataTable';
-import StatusBadge from '../../components/shared/ui/StatusBadge';
-import { showSuccess, showError } from '../../components/shared/ui/AlertBanner';
+import { useState, useEffect, useCallback } from 'react'
+import api from '../../api/axiosInstance'
+import { showSuccess, showError } from '../../components/shared/ui/AlertBanner'
+import StockTransactions from '../../components/service/inventory/StockTransactions'
+import ComponentDetailDrawer from '../../components/service/inventory/ComponentDetailDrawer'
 
-const TXN_TYPES = ['IN','OUT','ADJUSTMENT','TRANSFER','DISPOSAL','EXPIRY'];
+const PAGE_SIZE = 20
+
+const INIT_FORM = {
+  componentId: '',
+  txnType: 'RECEIPT',
+  quantity: '',
+  txnDate: '',
+  referenceId: '',
+  notes: '',
+}
 
 export default function StockTransactionsPage() {
-  const [txns, setTxns] = useState([]); const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState(''); const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ componentId:'', transactionType:'IN', quantity:'', notes:'' });
+  const [txns, setTxns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState('')
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
 
-  const load = (t) => {
-    setLoading(true);
-    const url = t ? `/api/stock-transactions/type/${t}` : '/api/stock-transactions?page=0&size=50';
-    api.get(url).then(r => setTxns(r.data?.data?.content || r.data?.content || r.data?.data || [])).catch(() => setTxns([])).finally(() => setLoading(false));
-  };
-  useEffect(() => load(typeFilter), [typeFilter]);
+  // Modal + form state
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ ...INIT_FORM })
+  const [saving, setSaving] = useState(false)
 
-  const submit = async () => {
-    try { await api.post('/api/stock-transactions', form); showSuccess('Recorded'); setShowModal(false); load(typeFilter); }
-    catch (e) { showError('Failed'); }
-  };
+  // Live balance lookup for the entered componentId
+  const [componentBalance, setComponentBalance] = useState(null)
+  const [balanceLoading, setBalanceLoading] = useState(false)
 
-  const columns = [
-    { key:'id', label:'ID' }, { key:'componentId', label:'Component' },
-    { key:'transactionType', label:'Type', render: v => <StatusBadge status={v} /> },
-    { key:'quantity', label:'Quantity' }, { key:'notes', label:'Notes' },
-    { key:'createdAt', label:'Date', render: v => v ? new Date(v).toLocaleString() : '—' },
-  ];
+  // Drawer state for clicking a row
+  const [drawerComponentId, setDrawerComponentId] = useState(null)
+
+  const loadTxns = useCallback((currentPage = page, currentType = typeFilter) => {
+    setLoading(true)
+    const url = currentType
+      ? `/api/stock-transactions/type/${currentType}`
+      : `/api/stock-transactions?page=${currentPage}&size=${PAGE_SIZE}`
+
+    api.get(url)
+      .then(r => {
+        const payload = r.data?.data ?? r.data ?? {}
+        if (Array.isArray(payload)) {
+          setTxns(payload)
+          setHasMore(false)
+        } else {
+          const content = payload.content ?? []
+          setTxns(Array.isArray(content) ? content : [])
+          if (typeof payload.last === 'boolean') setHasMore(!payload.last)
+          else setHasMore(content.length === PAGE_SIZE)
+        }
+      })
+      .catch(() => { setTxns([]); setHasMore(false) })
+      .finally(() => setLoading(false))
+  }, [page, typeFilter])
+
+  useEffect(() => {
+    setPage(0)
+    loadTxns(0, typeFilter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeFilter])
+
+  useEffect(() => {
+    if (!typeFilter) loadTxns(page, '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
+
+  // Debounced balance lookup whenever componentId changes
+  useEffect(() => {
+    if (!showModal) return
+    const id = form.componentId?.toString().trim()
+    if (!id || Number(id) < 1) {
+      setComponentBalance(null)
+      setBalanceLoading(false)
+      return
+    }
+
+    setBalanceLoading(true)
+    const handle = setTimeout(() => {
+      api.get(`/api/inventory/component/${id}`)
+        .then(r => {
+          const data = r.data?.data ?? r.data ?? null
+          setComponentBalance(data)
+        })
+        .catch(() => setComponentBalance(null))
+        .finally(() => setBalanceLoading(false))
+    }, 350) // debounce typing
+
+    return () => clearTimeout(handle)
+  }, [form.componentId, showModal])
+
+  const handleFormChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  const validate = () => {
+    if (!form.componentId || Number(form.componentId) < 1) {
+      showError('Component ID is required')
+      return false
+    }
+    if (!form.txnType) {
+      showError('Transaction type is required')
+      return false
+    }
+    if (!form.quantity || Number(form.quantity) < 1) {
+      showError('Quantity must be at least 1')
+      return false
+    }
+    return true
+  }
+
+  const handleSubmit = async () => {
+    if (!validate()) return
+    setSaving(true)
+    try {
+      const payload = {
+        componentId: Number(form.componentId),
+        txnType: form.txnType,
+        quantity: Number(form.quantity),
+        txnDate: form.txnDate || null,
+        referenceId: form.referenceId.trim() || null,
+        notes: form.notes.trim() || null,
+      }
+      await api.post('/api/stock-transactions', payload)
+      showSuccess('Transaction recorded')
+      setShowModal(false)
+      setForm({ ...INIT_FORM })
+      setComponentBalance(null)
+      loadTxns(page, typeFilter)
+    } catch (err) {
+      // Backend returns specific messages for 404 / 409 — surface them
+      const msg = err.response?.data?.message
+                  || err.response?.data?.error
+                  || 'Failed to record transaction'
+      showError(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <div className="animate-fadein">
-      <PageHeader title="Stock Transactions"><button className="btn-crimson" onClick={() => setShowModal(true)}>+ Record Transaction</button></PageHeader>
-      <div className="filter-row mb-3">
-        <select className="form-select" style={{ width:200 }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="">All Types</option>
-          {TXN_TYPES.map(t => <option key={t}>{t}</option>)}
-        </select>
-      </div>
-      <div className="table-wrapper"><DataTable columns={columns} data={txns} loading={loading} /></div>
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton><Modal.Title>Record Transaction</Modal.Title></Modal.Header>
-        <Modal.Body>
-          <Row className="g-3">
-            <Col xs={12}><label className="form-label">Component ID</label><input type="number" className="form-control" value={form.componentId} onChange={e => setForm({...form,componentId:e.target.value})} /></Col>
-            <Col xs={12}><label className="form-label">Transaction Type</label><select className="form-select" value={form.transactionType} onChange={e => setForm({...form,transactionType:e.target.value})}>{TXN_TYPES.map(t => <option key={t}>{t}</option>)}</select></Col>
-            <Col xs={12}><label className="form-label">Quantity</label><input type="number" className="form-control" value={form.quantity} onChange={e => setForm({...form,quantity:e.target.value})} /></Col>
-            <Col xs={12}><label className="form-label">Notes</label><textarea className="form-control" rows={2} value={form.notes} onChange={e => setForm({...form,notes:e.target.value})}></textarea></Col>
-          </Row>
-        </Modal.Body>
-        <Modal.Footer><button className="btn-glass" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-crimson" onClick={submit}>Record</button></Modal.Footer>
-      </Modal>
-    </div>
-  );
+    <>
+      <StockTransactions
+        txns={txns}
+        loading={loading}
+        typeFilter={typeFilter}
+        page={page}
+        pageSize={PAGE_SIZE}
+        hasMore={hasMore}
+        showModal={showModal}
+        form={form}
+        saving={saving}
+        componentBalance={componentBalance}
+        balanceLoading={balanceLoading}
+        onTypeFilterChange={setTypeFilter}
+        onPrevPage={() => setPage(p => Math.max(0, p - 1))}
+        onNextPage={() => setPage(p => p + 1)}
+        onOpenModal={() => {
+          setForm({ ...INIT_FORM })
+          setComponentBalance(null)
+          setShowModal(true)
+        }}
+        onCloseModal={() => {
+          setShowModal(false)
+          setComponentBalance(null)
+        }}
+        onFormChange={handleFormChange}
+        onSubmit={handleSubmit}
+        onView={(row) => setDrawerComponentId(row.componentId)}
+      />
+      <ComponentDetailDrawer
+        componentId={drawerComponentId}
+        show={drawerComponentId !== null}
+        onClose={() => setDrawerComponentId(null)}
+      />
+    </>
+  )
 }

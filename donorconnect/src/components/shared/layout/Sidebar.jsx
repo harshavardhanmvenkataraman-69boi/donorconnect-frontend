@@ -75,9 +75,10 @@ const SECTIONS = {
       { to: '/dashboard/quarantine',   icon: 'quarantine', label: 'Quarantine & Recall' },
     ]},
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory',          icon: 'inventory',    label: 'Stock Overview' },
-      { to: '/dashboard/stock-transactions', icon: 'transactions', label: 'Transactions' },
-      { to: '/dashboard/expiry-watch',       icon: 'expiry',       label: 'Expiry Watch' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
+      { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
     { label: 'Transfusion', links: [
       { to: '/dashboard/crossmatch',    icon: 'crossmatch', label: 'Crossmatch' },
@@ -124,12 +125,10 @@ const SECTIONS = {
   ],
   ROLE_INVENTORY_CONTROLLER: [
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory',          icon: 'inventory',    label: 'Stock Overview' },
-      { to: '/dashboard/stock-transactions', icon: 'transactions', label: 'Transactions' },
-      { to: '/dashboard/expiry-watch',       icon: 'expiry',       label: 'Expiry Watch' },
-    ]},
-    { label: 'Communication', links: [
-      { to: '/dashboard/notifications', icon: 'bell', label: 'Notifications' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
+      { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
   ],
   ROLE_TRANSFUSION_OFFICER: [

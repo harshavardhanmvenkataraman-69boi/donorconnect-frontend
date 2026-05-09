@@ -1,71 +1,67 @@
-import { useState, useEffect } from 'react';
-import api from '../../api/axiosInstance';
-import PageHeader from '../../components/shared/ui/PageHeader';
-import LoadingSpinner from '../../components/shared/ui/LoadingSpinner';
-import StatusBadge from '../../components/shared/ui/StatusBadge';
-import { showSuccess, showError } from '../../components/shared/ui/AlertBanner';
-
-const daysUntil = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
+import { useState, useEffect, useCallback } from 'react'
+import api from '../../api/axiosInstance'
+import { showSuccess, showError } from '../../components/shared/ui/AlertBanner'
+import ExpiryWatch from '../../components/service/inventory/ExpiryWatch'
+import ComponentDetailDrawer from '../../components/service/inventory/ComponentDetailDrawer'
 
 export default function ExpiryWatchPage() {
-  const [items, setItems] = useState([]); const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('ALL');
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('ALL')
+  const [actioningId, setActioningId] = useState(null)
+  const [drawerComponentId, setDrawerComponentId] = useState(null)
 
-  const load = () => {
-    setLoading(true);
-    const url = tab === 'Open' ? '/api/expiry-watch/open' : '/api/expiry-watch';
-    api.get(url).then(r => setItems(r.data?.data || r.data || [])).catch(() => setItems([])).finally(() => setLoading(false));
-  };
-  useEffect(load, [tab]);
+  const load = useCallback((currentTab = tab) => {
+    setLoading(true)
+    // The backend has a dedicated /open endpoint for unactioned alerts.
+    // Use it when the tab demands it; otherwise fetch the full set.
+    const url = currentTab === 'OPEN'
+      ? '/api/expiry-watch/open'
+      : '/api/expiry-watch'
 
-  const action = async (id) => {
-    try { await api.patch(`/api/expiry-watch/${id}/action`); showSuccess('Marked actioned'); load(); }
-    catch (e) { showError('Failed'); }
-  };
+    api.get(url)
+      .then(r => {
+        const data = r.data?.data ?? r.data ?? []
+        setItems(Array.isArray(data) ? data : [])
+      })
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+  }, [tab])
 
-  const filtered = tab === 'Actioned' ? items.filter(i => i.status === 'ACTIONED') : items.filter(i => tab !== 'Open' || i.status !== 'ACTIONED');
+  useEffect(() => { load(tab) }, [tab, load])
 
-  const rowClass = (days) => {
-    if (days === null) return '';
-    if (days <= 0) return 'table-danger';
-    if (days <= 3) return 'table-warning';
-    return '';
-  };
+  const handleAction = async (expiryId) => {
+    setActioningId(expiryId)
+    try {
+      await api.patch(`/api/expiry-watch/${expiryId}/action`)
+      showSuccess('Marked as actioned')
+      load(tab)
+    } catch (err) {
+      const msg = err.response?.data?.message
+                  || err.response?.data?.error
+                  || 'Failed to mark as actioned'
+      showError(msg)
+    } finally {
+      setActioningId(null)
+    }
+  }
 
   return (
-    <div className="animate-fadein">
-      <PageHeader title="Expiry Watch" />
-      {items.filter(i => i.status !== 'ACTIONED').length > 0 && (
-        <div className="alert-glass warning mb-4">⚠️ {items.filter(i => i.status !== 'ACTIONED').length} items require attention.</div>
-      )}
-      <div className="nav-tabs-glass mb-4">
-        {['ALL','Open','Actioned'].map(t => <button key={t} className={`nav-link${tab===t?' active':''}`} onClick={() => setTab(t)}>{t}</button>)}
-      </div>
-      <div className="table-wrapper">
-        {loading ? <LoadingSpinner /> : (
-          <div className="table-scroll">
-            <table className="table-glass w-100">
-              <thead><tr><th>ID</th><th>Component</th><th>Blood Group</th><th>Type</th><th>Expiry Date</th><th>Days Left</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody>
-                {filtered.length === 0 ? <tr><td colSpan={8} className="text-center py-4" style={{ color:'var(--text-muted)' }}>No records found.</td></tr> :
-                  filtered.map(i => {
-                    const days = daysUntil(i.expiryDate);
-                    return (
-                      <tr key={i.id} className={rowClass(days)}>
-                        <td>{i.id}</td><td>{i.componentId}</td><td>{i.bloodGroup}</td><td>{i.componentType}</td>
-                        <td>{i.expiryDate}</td>
-                        <td>{days !== null ? <strong style={{ color: days <= 0 ? 'var(--danger)' : days <= 3 ? 'var(--warning)' : 'inherit' }}>{days}d</strong> : '—'}</td>
-                        <td><StatusBadge status={i.status} /></td>
-                        <td>{i.status !== 'ACTIONED' && <button className="btn-glass" style={{ fontSize:'0.75rem' }} onClick={() => action(i.id)}>Mark Actioned</button>}</td>
-                      </tr>
-                    );
-                  })
-                }
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    <>
+      <ExpiryWatch
+        items={items}
+        loading={loading}
+        tab={tab}
+        actioningId={actioningId}
+        onTabChange={setTab}
+        onAction={handleAction}
+        onView={(row) => setDrawerComponentId(row.componentId)}
+      />
+      <ComponentDetailDrawer
+        componentId={drawerComponentId}
+        show={drawerComponentId !== null}
+        onClose={() => setDrawerComponentId(null)}
+      />
+    </>
+  )
 }
