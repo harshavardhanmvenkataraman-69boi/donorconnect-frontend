@@ -40,9 +40,12 @@ import TestResultsPage from '../pages/blood-supply/TestResultsPage';
 import QuarantineRecallPage from '../pages/blood-supply/QuarantineRecallPage';
 
 // Inventory
-import StockOverviewPage from '../pages/inventory/StockOverviewPage';
-import StockTransactionsPage from '../pages/inventory/StockTransactionsPage';
-import ExpiryWatchPage from '../pages/inventory/ExpiryWatchPage';
+import {
+  InventoryDashboardPage,
+  StockOverviewPage,
+  StockTransactionsPage,
+  ExpiryWatchPage,
+} from '../pages/inventory';
 
 // Transfusion
 import CrossmatchPage from '../pages/transfusion/CrossmatchPage';
@@ -124,7 +127,8 @@ export default function AppRouter() {
 
             {/* Inventory */}
             <Route element={<RoleGuard allowed={INVENTORY} />}>
-              <Route path="/dashboard/inventory" element={<StockOverviewPage />} />
+              <Route path="/dashboard/inventory" element={<InventoryDashboardPage />} />
+              <Route path="/dashboard/stock-overview" element={<StockOverviewPage />} />
               <Route path="/dashboard/stock-transactions" element={<StockTransactionsPage />} />
               <Route path="/dashboard/expiry-watch" element={<ExpiryWatchPage />} />
             </Route>

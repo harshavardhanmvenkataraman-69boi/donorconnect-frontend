@@ -24,7 +24,8 @@ const SECTIONS = {
       { to: '/dashboard/quarantine', icon: '🚫', label: 'Quarantine & Recall' },
     ]},
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
       { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
       { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
@@ -66,7 +67,8 @@ const SECTIONS = {
   ],
   ROLE_INVENTORY_CONTROLLER: [
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
       { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
       { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
