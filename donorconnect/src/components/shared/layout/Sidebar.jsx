@@ -24,7 +24,8 @@ const SECTIONS = {
       { to: '/dashboard/quarantine', icon: '🚫', label: 'Quarantine & Recall' },
     ]},
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
       { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
       { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
@@ -58,6 +59,7 @@ const SECTIONS = {
   ],
   ROLE_LAB_TECHNICIAN: [
     { label: 'Blood Supply', links: [
+      { to: '/dashboard/lab', icon: '📊', label: 'Dashboard' },
       { to: '/dashboard/donations', icon: '🩸', label: 'Donations' },
       { to: '/dashboard/components', icon: '🧪', label: 'Components' },
       { to: '/dashboard/test-results', icon: '✅', label: 'Test Results' },
@@ -66,7 +68,8 @@ const SECTIONS = {
   ],
   ROLE_INVENTORY_CONTROLLER: [
     { label: 'Inventory', links: [
-      { to: '/dashboard/inventory', icon: '📦', label: 'Stock Overview' },
+      { to: '/dashboard/inventory', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard/stock-overview', icon: '📦', label: 'Stock Overview' },
       { to: '/dashboard/stock-transactions', icon: '🔄', label: 'Transactions' },
       { to: '/dashboard/expiry-watch', icon: '⏰', label: 'Expiry Watch' },
     ]},
