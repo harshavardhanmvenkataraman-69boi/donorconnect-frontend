@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ScrollToTop from '../components/shared/ScrollToTop';
 import ProtectedRoute from '../components/shared/guards/ProtectedRoute';
 import RoleGuard from '../components/shared/guards/RoleGuard';
 import PublicLayout from '../components/shared/layout/PublicLayout';
@@ -16,7 +17,6 @@ import LoginPage from '../pages/auth/LoginPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 import SetupAdminPage from '../pages/auth/SetupAdminPage';
-import RegisterPage from '../pages/auth/RegisterPage';
 
 // Admin
 import AdminOverviewPage from '../pages/admin/AdminOverviewPage';
@@ -41,9 +41,12 @@ import TestResultsPage from '../pages/blood-supply/TestResultsPage';
 import QuarantineRecallPage from '../pages/blood-supply/QuarantineRecallPage';
 
 // Inventory
-import StockOverviewPage from '../pages/inventory/StockOverviewPage';
-import StockTransactionsPage from '../pages/inventory/StockTransactionsPage';
-import ExpiryWatchPage from '../pages/inventory/ExpiryWatchPage';
+import {
+  InventoryDashboardPage,
+  StockOverviewPage,
+  StockTransactionsPage,
+  ExpiryWatchPage,
+} from '../pages/inventory';
 
 // Transfusion
 import CrossmatchPage from '../pages/transfusion/CrossmatchPage';
@@ -65,6 +68,7 @@ const TRANSFUSION = ['ROLE_ADMIN', 'ROLE_TRANSFUSION_OFFICER'];
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* PUBLIC */}
         <Route element={<PublicLayout />}>
@@ -78,7 +82,6 @@ export default function AppRouter() {
         {/* AUTH */}
         <Route path="/login"            element={<LoginPage />} />
         <Route path="/setup"            element={<SetupAdminPage />} />
-        <Route path="/register"         element={<RegisterPage />} />
         <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
         <Route path="/reset-password"   element={<ResetPasswordPage />} />
 
@@ -120,9 +123,10 @@ export default function AppRouter() {
 
             {/* Inventory */}
             <Route element={<RoleGuard allowed={INVENTORY} />}>
-              <Route path="/dashboard/inventory"         element={<StockOverviewPage />} />
-              <Route path="/dashboard/stock-transactions"element={<StockTransactionsPage />} />
-              <Route path="/dashboard/expiry-watch"      element={<ExpiryWatchPage />} />
+              <Route path="/dashboard/inventory" element={<InventoryDashboardPage />} />
+              <Route path="/dashboard/stock-overview" element={<StockOverviewPage />} />
+              <Route path="/dashboard/stock-transactions" element={<StockTransactionsPage />} />
+              <Route path="/dashboard/expiry-watch" element={<ExpiryWatchPage />} />
             </Route>
 
             {/* Transfusion */}

@@ -22,11 +22,7 @@ const ROUTE_TITLES = {
 export default function TopBar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getCurrentUser();
-  const role = getRole();
-  const name = getUserName();
   const title = ROUTE_TITLES[location.pathname] || 'Dashboard';
-  const initials = name ? name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : 'U';
 
   return (
     <header className="topbar">
@@ -38,16 +34,6 @@ export default function TopBar() {
           title="Notifications"
         >
           🔔<span className="notif-badge"></span>
-        </button>
-        <div className="user-chip">
-          <div className="user-avatar">{initials}</div>
-          <div>
-            <div className="user-name">{name}</div>
-            <div className="role-badge-pill">{role?.replace('ROLE_','') || 'USER'}</div>
-          </div>
-        </div>
-        <button className="btn-glass" onClick={logout} style={{ padding:'6px 12px', fontSize:'0.78rem' }}>
-          ↪ Logout
         </button>
       </div>
     </header>
