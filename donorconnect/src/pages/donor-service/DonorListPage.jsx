@@ -1,44 +1,40 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../api/axiosInstance'
+import { showSuccess, showError } from '../../components/shared/ui/AlertBanner'  // ← ADDED
 import DonorList from '../../components/service/donor/DonorList.jsx'
 
 export default function DonorListPage() {
-  const [donors, setDonors] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [bgFilter, setBgFilter] = useState('')
+  const [donors, setDonors]           = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [search, setSearch]           = useState('')
+  const [bgFilter, setBgFilter]       = useState('')
   const [phoneSearch, setPhoneSearch] = useState('')
   const [selectedDonor, setSelectedDonor] = useState(null)
-
+  const [deleteTarget, setDeleteTarget]   = useState(null)  // ← ADDED
   const debounceRef = useRef(null)
   const navigate = useNavigate()
 
   const load = useCallback((s, b, phone) => {
     setLoading(true)
 
-    const hasName = !!s?.trim()
+    const hasName  = !!s?.trim()
     const hasPhone = !!phone?.trim()
-    const hasBg = !!b
+    const hasBg    = !!b
 
     if (hasName && hasPhone) {
       Promise.all([
         api.get(`/api/donors/search?name=${encodeURIComponent(s.trim())}`),
         api.get(`/api/donors/search/phone?phone=${encodeURIComponent(phone.trim())}`),
-      ])
-        .then(([nameRes, phoneRes]) => {
-          const byName = extractList(nameRes)
-          const byPhone = extractList(phoneRes)
-          const phoneIds = new Set(byPhone.map((d) => d.donorId))
-          let result = byName.filter((d) => phoneIds.has(d.donorId))
-
-          if (hasBg) result = result.filter((d) => d.bloodGroup === b)
-
-          setDonors(result)
-        })
-        .catch(() => setDonors([]))
-        .finally(() => setLoading(false))
-
+      ]).then(([nameRes, phoneRes]) => {
+        const byName  = extractList(nameRes)
+        const byPhone = extractList(phoneRes)
+        const phoneIds = new Set(byPhone.map(d => d.donorId))
+        let result = byName.filter(d => phoneIds.has(d.donorId))
+        if (hasBg) result = result.filter(d => d.bloodGroup === b)
+        setDonors(result)
+      }).catch(() => setDonors([]))
+       .finally(() => setLoading(false))
       return
     }
 
@@ -68,9 +64,7 @@ export default function DonorListPage() {
     return Array.isArray(data) ? data : []
   }
 
-  useEffect(() => {
-    load('', '', '')
-  }, [load])
+  useEffect(() => { load('', '', '') }, [load])
 
   const handleSearchChange = (e) => {
     const val = e.target.value
@@ -82,7 +76,6 @@ export default function DonorListPage() {
 
   const handlePhoneChange = (e) => {
     const val = e.target.value
-
     setPhoneSearch(val)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => load(search, bgFilter, val), 300)
@@ -95,6 +88,19 @@ export default function DonorListPage() {
     load(search, val, phoneSearch)
   }
 
+  // ── ADDED: delete handler ─────────────────────────────────────────────────
+  const handleDelete = async (donorId, reason) => {
+    try {
+      await api.delete(`/api/donors/${donorId}?reason=${encodeURIComponent(reason)}`)
+      showSuccess('Donor record deleted successfully')
+      setDeleteTarget(null)
+      load(search, bgFilter, phoneSearch)
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to delete donor')
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <DonorList
       donors={donors}
@@ -103,19 +109,21 @@ export default function DonorListPage() {
       bgFilter={bgFilter}
       phoneSearch={phoneSearch}
       selectedDonor={selectedDonor}
+      deleteTarget={deleteTarget}
       onSearchChange={handleSearchChange}
       onPhoneChange={handlePhoneChange}
       onBgChange={handleBgChange}
       onClearFilters={() => {
-        setSearch('')
-        setBgFilter('')
-        setPhoneSearch('')
+        setSearch(''); setBgFilter(''); setPhoneSearch('')
         load('', '', '')
       }}
       onRegisterClick={() => navigate('/dashboard/donors/register')}
       onSelectDonor={setSelectedDonor}
       onCloseModal={() => setSelectedDonor(null)}
       onEditDonor={(id) => navigate(`/dashboard/donors/edit/${id}`)}
+      onDeleteRequest={setDeleteTarget}
+      onDeleteConfirm={handleDelete}
+      onDeleteClose={() => setDeleteTarget(null)}
     />
   )
 }
