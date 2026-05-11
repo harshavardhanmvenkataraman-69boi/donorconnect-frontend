@@ -13,7 +13,7 @@ export default function DonorListPage() {
   const [selectedDonor, setSelectedDonor] = useState(null)
   const [deleteTarget, setDeleteTarget]   = useState(null)  // ← ADDED
   const debounceRef = useRef(null)
-  const navigate    = useNavigate()
+  const navigate = useNavigate()
 
   const load = useCallback((s, b, phone) => {
     setLoading(true)
@@ -39,17 +39,20 @@ export default function DonorListPage() {
     }
 
     let url
-    if (hasPhone)      url = `/api/donors/search/phone?phone=${encodeURIComponent(phone.trim())}`
-    else if (hasName)  url = `/api/donors/search?name=${encodeURIComponent(s.trim())}`
-    else if (hasBg)    url = `/api/donors/blood-group/${b}`
-    else               url = '/api/donors?page=0&size=50'
+
+    if (hasPhone) url = `/api/donors/search/phone?phone=${encodeURIComponent(phone.trim())}`
+    else if (hasName) url = `/api/donors/search?name=${encodeURIComponent(s.trim())}`
+    else if (hasBg) url = `/api/donors/blood-group/${b}`
+    else url = '/api/donors?page=0&size=50'
 
     api.get(url)
-      .then(r => {
+      .then((r) => {
         let data = extractList(r)
+
         if (hasBg && (hasName || hasPhone)) {
-          data = data.filter(d => d.bloodGroup === b)
+          data = data.filter((d) => d.bloodGroup === b)
         }
+
         setDonors(data)
       })
       .catch(() => setDonors([]))
@@ -65,6 +68,7 @@ export default function DonorListPage() {
 
   const handleSearchChange = (e) => {
     const val = e.target.value
+
     setSearch(val)
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => load(val, bgFilter, phoneSearch), 300)
@@ -79,6 +83,7 @@ export default function DonorListPage() {
 
   const handleBgChange = (e) => {
     const val = e.target.value
+
     setBgFilter(val)
     load(search, val, phoneSearch)
   }

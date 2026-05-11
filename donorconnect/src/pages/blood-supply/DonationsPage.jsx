@@ -1,55 +1,186 @@
-import { useState, useEffect } from 'react';
-import { Modal } from 'react-bootstrap';
-import api from '../../api/axiosInstance';
-import PageHeader from '../../components/shared/ui/PageHeader';
-import DataTable from '../../components/shared/ui/DataTable';
-import StatusBadge from '../../components/shared/ui/StatusBadge';
-import { showSuccess, showError } from '../../components/shared/ui/AlertBanner';
+import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../../api/axiosInstance";
+import PageHeader from "../../components/shared/ui/PageHeader";
+import DonationList from "../../components/service/blood-supply/DonationList";
+import DonationForm from "../../components/service/blood-supply/DonationForm";
+import ComponentsModal from "../../components/service/blood-supply/ComponentsModal";
+import { showSuccess, showError } from "../../components/shared/ui/AlertBanner";
+
+const COLLECTION_STATUSES = ["COLLECTED", "INCOMPLETE", "REJECTED"];
+const INIT_FORM = {
+  donorId: "",
+  bagId: "",
+  volumeMl: "",
+  collectionDate: "",
+  collectedBy: "",
+  collectionStatus: "COLLECTED",
+};
 
 export default function DonationsPage() {
-  const [donations, setDonations] = useState([]); const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false); const [compModal, setCompModal] = useState(null);
-  const [form, setForm] = useState({ donorId:'', volumeMl:'' });
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [components, setComponents] = useState(null);
+  const [form, setForm] = useState(INIT_FORM);
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const load = () => { api.get('/api/donations').then(r => setDonations(r.data?.data || r.data || [])).catch(() => setDonations([])).finally(() => setLoading(false)); };
-  useEffect(load, []);
+  const [donorStatus, setDonorStatus] = useState("idle");
+  const [donorName, setDonorName] = useState("");
+  const debounceRef = useRef(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    api
+      .get("/api/donations")
+      .then((r) => {
+        const d = r.data?.data;
+        setDonations(Array.isArray(d) ? d : (d?.content ?? []));
+      })
+      .catch(() => setDonations([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const checkDonor = (id) => {
+    if (!id) {
+      setDonorStatus("idle");
+      setDonorName("");
+      return;
+    }
+    setDonorStatus("checking");
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const r = await api.get(`/api/donors/${id}`);
+        const donor = r.data?.data;
+        if (donor) {
+          setDonorStatus("valid");
+          setDonorName(
+            donor.firstName
+              ? `${donor.firstName} ${donor.lastName || ""}`.trim()
+              : donor.name || `Donor #${id}`,
+          );
+        } else {
+          setDonorStatus("invalid");
+          setDonorName("");
+        }
+      } catch {
+        // 404 = donor not found, 403 = no permission, 500 = server error
+        // all treated as invalid — backend will also block on POST
+        setDonorStatus("invalid");
+        setDonorName("");
+      }
+    }, 600);
+  };
+
+  const handleDonorIdChange = (val) => {
+    setForm((f) => ({ ...f, donorId: val }));
+    checkDonor(val);
+  };
 
   const record = async () => {
-    try { await api.post('/api/donations', form); showSuccess('Donation recorded'); setShowModal(false); load(); }
-    catch (e) { showError('Failed'); }
-  };
-  const viewComponents = async (id) => {
-    const r = await api.get(`/api/components?donationId=${id}`).catch(() => ({ data:[] }));
-    setCompModal(r.data?.data || r.data || []);
+    if (!form.donorId) {
+      showError("Donor ID is required");
+      return;
+    }
+    if (donorStatus === "invalid") {
+      showError("Donor ID does not exist. Please enter a valid Donor ID.");
+      return;
+    }
+    if (donorStatus === "checking") {
+      showError("Please wait — verifying Donor ID...");
+      return;
+    }
+    if (!form.bagId) {
+      showError("Bag ID is required");
+      return;
+    }
+    try {
+      await api.post("/api/donations", {
+        donorId: Number(form.donorId),
+        bagId: form.bagId,
+        volumeMl: form.volumeMl ? Number(form.volumeMl) : undefined,
+        collectionDate: form.collectionDate || undefined,
+        collectedBy: form.collectedBy || undefined,
+        collectionStatus: form.collectionStatus,
+      });
+      showSuccess("Donation recorded");
+      setShowModal(false);
+      setForm(INIT_FORM);
+      setDonorStatus("idle");
+      setDonorName("");
+      load();
+    } catch (e) {
+      showError(e?.response?.data?.message || "Failed to record donation");
+    }
   };
 
-  const columns = [
-    { key:'id', label:'ID' }, { key:'donorId', label:'Donor ID' }, { key:'volumeMl', label:'Volume (ml)' },
-    { key:'collectionStatus', label:'Status', render: v => <StatusBadge status={v} /> },
-    { key:'donatedAt', label:'Donated At', render: v => v ? new Date(v).toLocaleString() : '—' },
-  ];
+  const closeModal = () => {
+    setShowModal(false);
+    setForm(INIT_FORM);
+    setDonorStatus("idle");
+    setDonorName("");
+  };
+
+  const viewComponents = async (donationId) => {
+    try {
+      const r = await api.get(`/api/components/donation/${donationId}`);
+      setComponents(Array.isArray(r.data?.data) ? r.data.data : []);
+    } catch {
+      setComponents([]);
+    }
+  };
+
+  const updateStatus = async (donationId, status) => {
+    try {
+      await api.patch(`/api/donations/${donationId}/status`, null, {
+        params: { status },
+      });
+      showSuccess("Status updated");
+      load();
+    } catch (e) {
+      showError(e?.response?.data?.message || "Failed");
+    }
+  };
 
   return (
     <div className="animate-fadein">
-      <PageHeader title="Donations Log"><button className="btn-crimson" onClick={() => setShowModal(true)}>+ Record Donation</button></PageHeader>
-      <div className="table-wrapper"><DataTable columns={columns} data={donations} loading={loading} actions={row => (<button className="btn-glass" onClick={() => viewComponents(row.id)}>Components</button>)} /></div>
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton><Modal.Title>Record Donation</Modal.Title></Modal.Header>
-        <Modal.Body>
-          <div className="mb-3"><label className="form-label">Donor ID</label><input type="number" className="form-control" value={form.donorId} onChange={e => setForm({...form,donorId:e.target.value})} /></div>
-          <div><label className="form-label">Volume (ml)</label><input type="number" className="form-control" value={form.volumeMl} onChange={e => setForm({...form,volumeMl:e.target.value})} /></div>
-        </Modal.Body>
-        <Modal.Footer><button className="btn-glass" onClick={() => setShowModal(false)}>Cancel</button><button className="btn-crimson" onClick={record}>Record</button></Modal.Footer>
-      </Modal>
-      <Modal show={!!compModal} onHide={() => setCompModal(null)} centered size="lg">
-        <Modal.Header closeButton><Modal.Title>Blood Components</Modal.Title></Modal.Header>
-        <Modal.Body>
-          {!compModal?.length ? <p style={{ color:'var(--text-muted)' }}>No components found.</p> :
-            <table className="table-glass w-100"><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Expiry</th></tr></thead>
-              <tbody>{compModal.map(c => (<tr key={c.id}><td>{c.id}</td><td>{c.componentType}</td><td><StatusBadge status={c.status} /></td><td>{c.expiryDate}</td></tr>))}</tbody>
-            </table>}
-        </Modal.Body>
-      </Modal>
+      <PageHeader title="Donations Log">
+        <button className="btn-crimson" onClick={() => setShowModal(true)}>
+          + Record Donation
+        </button>
+      </PageHeader>
+
+      <DonationList
+        donations={donations}
+        loading={loading}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        onViewComponents={viewComponents}
+        onStatusUpdate={updateStatus}
+        collectionStatuses={COLLECTION_STATUSES}
+      />
+
+      <DonationForm
+        show={showModal}
+        form={form}
+        onFormChange={setForm}
+        donorStatus={donorStatus}
+        donorName={donorName}
+        onDonorIdChange={handleDonorIdChange}
+        onSubmit={record}
+        onClose={closeModal}
+        collectionStatuses={COLLECTION_STATUSES}
+      />
+
+      <ComponentsModal
+        show={!!components}
+        components={components}
+        onClose={() => setComponents(null)}
+      />
     </div>
   );
 }
