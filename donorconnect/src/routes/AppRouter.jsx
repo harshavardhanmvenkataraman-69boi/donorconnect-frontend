@@ -28,7 +28,7 @@ import NotificationsPage from '../pages/admin/NotificationsPage';
 
 // Donor Service
 import DonorListPage from '../pages/donor-service/DonorListPage';
-import DonorRegisterPage from '../pages/donor-service/DonorRegisterPage';
+import DonorRegisterPage from "../pages/donor-service/DonorRegisterPage";
 import AppointmentsPage from '../pages/donor-service/AppointmentsPage';
 import DrivesPage from '../pages/donor-service/DrivesPage';
 import DeferralsPage from '../pages/donor-service/DeferralsPage';
@@ -39,6 +39,7 @@ import DonationsPage from '../pages/blood-supply/DonationsPage';
 import BloodComponentsPage from '../pages/blood-supply/BloodComponentsPage';
 import TestResultsPage from '../pages/blood-supply/TestResultsPage';
 import QuarantineRecallPage from '../pages/blood-supply/QuarantineRecallPage';
+import LabDashboardPage from '../pages/blood-supply/LabDashboardPage';
 
 // Inventory
 import {
@@ -115,10 +116,11 @@ export default function AppRouter() {
 
             {/* Blood Supply */}
             <Route element={<RoleGuard allowed={LAB} />}>
-              <Route path="/dashboard/donations"   element={<DonationsPage />} />
-              <Route path="/dashboard/components"  element={<BloodComponentsPage />} />
-              <Route path="/dashboard/test-results"element={<TestResultsPage />} />
-              <Route path="/dashboard/quarantine"  element={<QuarantineRecallPage />} />
+              <Route path="/dashboard/lab" element={<LabDashboardPage />} />
+              <Route path="/dashboard/donations" element={<DonationsPage />} />
+              <Route path="/dashboard/components" element={<BloodComponentsPage />} />
+              <Route path="/dashboard/test-results" element={<TestResultsPage />} />
+              <Route path="/dashboard/quarantine" element={<QuarantineRecallPage />} />
             </Route>
 
             {/* Inventory */}

@@ -53,7 +53,12 @@ function DonorDetailModal({ donor, onClose, onEdit }) {
   )
 }
 
-export default function DonorList({ donors, loading, search, bgFilter, selectedDonor, onSearchChange, onBgChange, onClearFilters, onRegisterClick, onSelectDonor, onCloseModal, onEditDonor }) {
+export default function DonorList({
+  donors, loading, search, bgFilter, phoneSearch,
+  selectedDonor, onSearchChange, onPhoneChange,
+  onBgChange, onClearFilters, onRegisterClick,
+  onSelectDonor, onCloseModal, onEditDonor
+}) {
   const navigate = useNavigate()
   const columns = [
     { key: 'donorId', label: 'ID', render: v => <code className="text-muted">#{v}</code> },
@@ -68,19 +73,44 @@ export default function DonorList({ donors, loading, search, bgFilter, selectedD
       <PageHeader title="Donor Registry">
         <button className="btn btn-danger btn-sm" onClick={onRegisterClick}>+ Register Donor</button>
       </PageHeader>
+
       <div className="d-flex gap-2 align-items-center mb-3 flex-wrap">
-        <div className="input-group input-group-sm" style={{ maxWidth: 280 }}>
+
+        {/* Name search */}
+        <div className="input-group input-group-sm" style={{ maxWidth: 240 }}>
           <span className="input-group-text">🔍</span>
-          <input className="form-control" placeholder="Search by name…" value={search} onChange={onSearchChange} />
+          <input
+            className="form-control"
+            placeholder="Search by name…"
+            value={search}
+            onChange={onSearchChange}
+          />
         </div>
+
+        {/* Phone search */}
+        <div className="input-group input-group-sm" style={{ maxWidth: 220 }}>
+          <span className="input-group-text">📞</span>
+          <input
+            className="form-control"
+            type="tel"
+            placeholder="Search by phone…"
+            value={phoneSearch}
+            onChange={onPhoneChange}
+          />
+        </div>
+
+        {/* Blood group filter */}
         <select className="form-select form-select-sm" style={{ width: 160 }} value={bgFilter} onChange={onBgChange}>
           <option value="">All Blood Groups</option>
           {['A', 'B', 'AB', 'O'].map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-        {(search || bgFilter) && (
+
+        {/* Clear button — shows when any filter is active */}
+        {(search || bgFilter || phoneSearch) && (
           <button className="btn btn-outline-secondary btn-sm" onClick={onClearFilters}>✕ Clear</button>
         )}
       </div>
+
       <div className="table-wrapper">
         <DataTable columns={columns} data={donors} loading={loading}
           actions={row => (
@@ -91,8 +121,14 @@ export default function DonorList({ donors, loading, search, bgFilter, selectedD
           )}
         />
       </div>
-      {selectedDonor && <DonorDetailModal donor={selectedDonor} onClose={onCloseModal}
-        onEdit={() => { onCloseModal(); onEditDonor(selectedDonor.donorId) }} />}
+
+      {selectedDonor && (
+        <DonorDetailModal
+          donor={selectedDonor}
+          onClose={onCloseModal}
+          onEdit={() => { onCloseModal(); onEditDonor(selectedDonor.donorId) }}
+        />
+      )}
     </div>
   )
 }
