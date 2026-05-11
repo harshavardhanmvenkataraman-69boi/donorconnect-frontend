@@ -1,3 +1,4 @@
+import { useState } from 'react'                        // ← ADDED useState
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../../shared/ui/PageHeader'
 import DataTable from '../../shared/ui/DataTable'
@@ -5,6 +6,7 @@ import StatusBadge from '../../shared/ui/StatusBadge'
 import DsModal from '../../shared/donor-service/DsModal'
 import { DsBtnPrimary, DsBtnGhost, DsBtnInline } from '../../shared/donor-service/DsButtons'
 import { BloodCircle, StatusPill } from '../../shared/donor-service/DsBadges'
+import { getRole } from '../../../api/authUtils'         // ← ADDED
 
 const TYPE_LABELS = { VOLUNTARY: 'Voluntary', REPLACEMENT: 'Replacement', STUDENT: 'Student', CORPORATE: 'Corporate' }
 
@@ -53,13 +55,77 @@ function DonorDetailModal({ donor, onClose, onEdit }) {
   )
 }
 
+// ── ADDED: Delete confirm modal ───────────────────────────────────────────────
+const DELETE_REASONS = [
+  'Donor deceased',
+  'Duplicate record',
+  'Data entry error',
+  'Donor request',
+  'Other',
+]
+
+function DeleteConfirmModal({ donor, onClose, onConfirm }) {
+  const [reason, setReason] = useState('Donor deceased')
+  const [deleting, setDeleting] = useState(false)
+
+  const handle = async () => {
+    setDeleting(true)
+    await onConfirm(donor.donorId, reason)
+    setDeleting(false)
+  }
+
+  return (
+    <DsModal show size="sm" onClose={onClose}
+      title="Delete Donor Record"
+      subtitle={`${donor.name} · ID #${donor.donorId}`}
+      footer={
+        <>
+          <DsBtnGhost onClick={onClose} disabled={deleting}>Cancel</DsBtnGhost>
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={handle}
+            disabled={deleting}
+          >
+            {deleting
+              ? <><span className="spinner-border spinner-border-sm me-1" />Deleting…</>
+              : '🗑 Delete Permanently'}
+          </button>
+        </>
+      }>
+      <div className="p-3 d-flex flex-column gap-3">
+        <div className="alert alert-danger py-2 mb-0 small">
+          ⚠ This action <strong>cannot be undone</strong>. All appointments,
+          screenings and deferrals linked to this donor will also be removed.
+        </div>
+        <div>
+          <label className="form-label small fw-semibold text-uppercase text-secondary"
+            style={{ fontSize: '0.72rem', letterSpacing: '0.5px' }}>
+            Reason for deletion
+          </label>
+          <select
+            className="form-select form-select-sm"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+          >
+            {DELETE_REASONS.map(r => <option key={r}>{r}</option>)}
+          </select>
+        </div>
+      </div>
+    </DsModal>
+  )
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function DonorList({
   donors, loading, search, bgFilter, phoneSearch,
   selectedDonor, onSearchChange, onPhoneChange,
   onBgChange, onClearFilters, onRegisterClick,
-  onSelectDonor, onCloseModal, onEditDonor
+  onSelectDonor, onCloseModal, onEditDonor,
+  deleteTarget, onDeleteRequest, onDeleteConfirm, onDeleteClose,  // ← ADDED
 }) {
   const navigate = useNavigate()
+  const isAdmin  = getRole() === 'ROLE_ADMIN'               // ← ADDED
+
   const columns = [
     { key: 'donorId', label: 'ID', render: v => <code className="text-muted">#{v}</code> },
     { key: 'name', label: 'Name' },
@@ -117,6 +183,10 @@ export default function DonorList({
             <div className="d-flex gap-1">
               <DsBtnInline onClick={() => onSelectDonor(row)}>View</DsBtnInline>
               <DsBtnInline onClick={() => navigate(`/dashboard/donors/edit/${row.donorId}`)}>Edit</DsBtnInline>
+              {/* ── ADDED: Delete button — admin only ── */}
+              {isAdmin && (
+                <DsBtnInline variant="red" onClick={() => onDeleteRequest(row)}>Delete</DsBtnInline>
+              )}
             </div>
           )}
         />
@@ -127,6 +197,15 @@ export default function DonorList({
           donor={selectedDonor}
           onClose={onCloseModal}
           onEdit={() => { onCloseModal(); onEditDonor(selectedDonor.donorId) }}
+        />
+      )}
+
+      {/* ── ADDED: Delete confirm modal ── */}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          donor={deleteTarget}
+          onClose={onDeleteClose}
+          onConfirm={onDeleteConfirm}
         />
       )}
     </div>

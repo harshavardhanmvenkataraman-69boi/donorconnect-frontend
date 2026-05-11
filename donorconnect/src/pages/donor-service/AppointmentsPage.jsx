@@ -13,6 +13,36 @@ export default function AppointmentsPage() {
   const [confirm, setConfirm]     = useState(null)
   const [actioning, setActioning] = useState(null)
   const [donorSearch, setDonorSearch] = useState('')
+
+  // ── Donor ID validation state (for Book modal) ────────────────────────────
+  const [bookDonorStatus, setBookDonorStatus] = useState('idle')  // idle|checking|valid|invalid
+  const [bookDonorName,   setBookDonorName]   = useState('')
+  const donorCheckRef = useRef(null)
+
+  const checkBookDonor = (id) => {
+    if (!id) { setBookDonorStatus('idle'); setBookDonorName(''); return }
+    setBookDonorStatus('checking')
+    clearTimeout(donorCheckRef.current)
+    donorCheckRef.current = setTimeout(async () => {
+      try {
+        const r     = await api.get(`/api/donors/${id}`)
+        const donor = r.data?.data || r.data
+        if (donor && donor.donorId) {
+          setBookDonorStatus('valid')
+          setBookDonorName(donor.name || `Donor #${id}`)
+        } else {
+          setBookDonorStatus('invalid'); setBookDonorName('')
+        }
+      } catch { setBookDonorStatus('invalid'); setBookDonorName('') }
+    }, 600)
+  }
+
+  const resetBookDonor = () => {
+    clearTimeout(donorCheckRef.current)
+    setBookDonorStatus('idle'); setBookDonorName('')
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const debounceRef = useRef(null)
 
   const load = useCallback(() => {
@@ -46,21 +76,16 @@ export default function AppointmentsPage() {
       load()
     } catch (err) {
       showError(err.response?.data?.message || 'Action failed')
-    } finally {
-      setActioning(null)
-    }
+    } finally { setActioning(null) }
   }
 
   const handleAction = (appointmentId, endpoint, requiresConfirm = false) => {
-    if (requiresConfirm) {
-      setConfirm({ appointmentId, endpoint })
-      setViewAppt(null)
-      return
-    }
+    if (requiresConfirm) { setConfirm({ appointmentId, endpoint }); setViewAppt(null); return }
     doAction(appointmentId, endpoint)
   }
 
   const handleBook = async (form) => {
+    if (bookDonorStatus !== 'valid') { showError('Please enter a valid Donor ID'); return }
     const payload = {
       donorId:  Number(form.donorId),
       dateTime: form.dateTime,
@@ -69,9 +94,8 @@ export default function AppointmentsPage() {
     }
     try {
       await api.post('/api/appointments', payload)
-      showSuccess('Appointment booked successfully')
-      setShowBook(false)
-      load()
+      showSuccess('Appointment booked')
+      setShowBook(false); resetBookDonor(); load()
     } catch (err) {
       showError(err.response?.data?.message || 'Booking failed — donor must be ACTIVE with a cleared screening')
     }
@@ -88,21 +112,18 @@ export default function AppointmentsPage() {
 
   return (
     <AppointmentList
-      tab={tab}
-      appts={appts}
-      loading={loading}
-      drives={drives}
-      donorSearch={donorSearch}
-      actioning={actioning}
-      showBook={showBook}
-      viewAppt={viewAppt}
-      confirm={confirm}
+      tab={tab} appts={appts} loading={loading} drives={drives}
+      donorSearch={donorSearch} actioning={actioning}
+      showBook={showBook} viewAppt={viewAppt} confirm={confirm}
+      bookDonorStatus={bookDonorStatus}
+      bookDonorName={bookDonorName}
+      onBookDonorIdChange={(val) => checkBookDonor(val)}
       onTabChange={(key) => { setTab(key); setAppts([]) }}
       onDonorSearchChange={handleDonorSearchChange}
       onDonorSearch={load}
       onAction={handleAction}
       onViewAppt={(row) => row ? setViewAppt(row) : setShowBook(true)}
-      onBookClose={() => setShowBook(false)}
+      onBookClose={() => { setShowBook(false); resetBookDonor() }}
       onBookDone={handleBook}
       onViewClose={() => setViewAppt(null)}
       onConfirmClose={() => setConfirm(null)}
