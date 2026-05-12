@@ -27,9 +27,14 @@ export default function AppointmentsPage() {
       try {
         const r     = await api.get(`/api/donors/${id}`)
         const donor = r.data?.data || r.data
-        if (donor && donor.donorId) {
+
+        // FIX 1: Accept any of the common ID field names so a real donor isn't
+        // rejected just because the backend uses 'id' instead of 'donorId'.
+        const isValid = donor && (donor.donorId || donor.id || donor.donor_id)
+
+        if (isValid) {
           setBookDonorStatus('valid')
-          setBookDonorName(donor.name || `Donor #${id}`)
+          setBookDonorName(donor.name || donor.fullName || `Donor #${id}`)
         } else {
           setBookDonorStatus('invalid'); setBookDonorName('')
         }
@@ -85,7 +90,17 @@ export default function AppointmentsPage() {
   }
 
   const handleBook = async (form) => {
-    if (bookDonorStatus !== 'valid') { showError('Please enter a valid Donor ID'); return }
+    // FIX 2: Handle the race condition where the user clicks Book while the
+    // debounced donor check is still in-flight (status === 'checking').
+    if (bookDonorStatus === 'checking') {
+      showError('Still verifying Donor ID — please wait a moment and try again')
+      return
+    }
+    if (bookDonorStatus !== 'valid') {
+      showError('Please enter a valid Donor ID')
+      return
+    }
+
     const payload = {
       donorId:  Number(form.donorId),
       dateTime: form.dateTime,

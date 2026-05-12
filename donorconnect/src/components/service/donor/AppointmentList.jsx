@@ -38,20 +38,56 @@ const TABS = [
   { key: 'donor', label: 'By Donor'             },
 ]
 
+// ─── Donor status indicator ───────────────────────────────────────────────────
+function DonorStatusHint({ status, name }) {
+  if (status === 'idle')     return null
+  if (status === 'checking') return (
+    <span style={{ fontSize: '0.78rem', color: '#888', marginTop: 4, display: 'block' }}>
+      ⏳ Verifying donor…
+    </span>
+  )
+  if (status === 'valid') return (
+    <span style={{ fontSize: '0.78rem', color: '#2e7d32', marginTop: 4, display: 'block', fontWeight: 600 }}>
+      ✓ {name}
+    </span>
+  )
+  if (status === 'invalid') return (
+    <span style={{ fontSize: '0.78rem', color: '#c62828', marginTop: 4, display: 'block' }}>
+      ✕ Donor not found or inactive
+    </span>
+  )
+  return null
+}
+
 // ─── Book Modal ───────────────────────────────────────────────────────────────
-function BookModal({ drives, onClose, onBook }) {
+// FIX: BookModal now receives and uses donorStatus/donorName from the parent,
+// which performs the real API validation. The local form no longer decides
+// validity on its own — it delegates to the parent via onDonorIdChange.
+function BookModal({ drives, onClose, onBook, donorStatus, donorName, onDonorIdChange }) {
   const [form, setForm]   = useState({ donorId: '', dateTime: '', driveId: '', centerId: '' })
   const [saving, setSaving] = useState(false)
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
   const upcoming = drives.filter(d => d.status === 'ACTIVE' || d.status === 'PLANNED')
 
+  const handleDonorIdChange = (e) => {
+    const val = e.target.value
+    setForm(f => ({ ...f, donorId: val }))
+    // Notify parent so it can run the debounced API check
+    onDonorIdChange(val)
+  }
+
   const handle = async () => {
-    if (!form.donorId)   return
-    if (!form.dateTime)  return
+    if (!form.donorId)  return
+    if (!form.dateTime) return
+    // FIX: guard against clicking Book while the debounce is still in-flight
+    if (donorStatus === 'checking' || donorStatus !== 'valid') return
     setSaving(true)
     await onBook(form)
     setSaving(false)
   }
+
+  // FIX: Book button is disabled until the parent confirms the donor is valid
+  const canBook = form.donorId && form.dateTime && donorStatus === 'valid'
 
   return (
     <DsModal
@@ -62,7 +98,12 @@ function BookModal({ drives, onClose, onBook }) {
       footer={
         <>
           <DsBtnGhost onClick={onClose} disabled={saving}>Cancel</DsBtnGhost>
-          <DsBtnPrimary loading={saving} loadingText="Booking…" onClick={handle} disabled={!form.donorId || !form.dateTime}>
+          <DsBtnPrimary
+            loading={saving}
+            loadingText="Booking…"
+            onClick={handle}
+            disabled={!canBook || saving}
+          >
             + Book Appointment
           </DsBtnPrimary>
         </>
@@ -70,15 +111,17 @@ function BookModal({ drives, onClose, onBook }) {
     >
       <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
 
-        {/* Donor ID */}
+        {/* Donor ID — wired to parent validation */}
         <DsField label="Donor ID" required>
           <DsInput
             type="number"
             value={form.donorId}
-            onChange={set('donorId')}
+            onChange={handleDonorIdChange}
             placeholder="e.g. 42"
             autoFocus
           />
+          {/* Live feedback below the input */}
+          <DonorStatusHint status={donorStatus} name={donorName} />
         </DsField>
 
         {/* Date & Time */}
@@ -200,6 +243,8 @@ export default function AppointmentList({
   onTabChange, onDonorSearchChange, onDonorSearch, onAction, onViewAppt,
   showBook, viewAppt, confirm,
   onBookClose, onViewClose, onConfirmClose, onBookDone, onConfirmDone,
+  // FIX: accept the donor validation props passed down from AppointmentsPage
+  bookDonorStatus, bookDonorName, onBookDonorIdChange,
 }) {
   const role   = getRole()
   const canAct = (r) => r === 'ALL' || role === 'ROLE_RECEPTION' || role === 'ROLE_ADMIN'
@@ -342,7 +387,14 @@ export default function AppointmentList({
 
       {/* Modals */}
       {showBook && (
-        <BookModal drives={drives} onClose={onBookClose} onBook={onBookDone} />
+        <BookModal
+          drives={drives}
+          onClose={onBookClose}
+          onBook={onBookDone}
+          donorStatus={bookDonorStatus}
+          donorName={bookDonorName}
+          onDonorIdChange={onBookDonorIdChange}
+        />
       )}
       {viewAppt && (
         <DetailModal
