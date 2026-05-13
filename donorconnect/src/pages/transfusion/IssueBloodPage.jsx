@@ -6,16 +6,17 @@ import IssueBloodForm from '../../components/service/transfusion/IssueBloodForm.
 export default function IssueBloodPage() {
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (form) => {
+  const handleSubmit = async (form, resetForm) => {
     setLoading(true)
     try {
       await api.post('/api/transfusion/issue', {
         componentId: Number(form.componentId),
-        patientId: Number(form.patientId),
-        issuedBy: form.issuedBy,
-        indication: form.indication,
+        patientId:   Number(form.patientId),
+        issuedBy:    form.issuedBy,
+        indication:  form.indication,
       })
       showSuccess('Blood component issued successfully')
+      resetForm()  // ← clears form after successful issue
     } catch (err) {
       showError(err.response?.data?.message || 'Issue failed — ensure component is RESERVED')
     } finally {

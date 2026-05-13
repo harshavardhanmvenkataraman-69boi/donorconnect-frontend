@@ -97,7 +97,6 @@ export default function AppRouter() {
               <Route path="/dashboard/audit-logs"  element={<AuditLogPage />} />
               <Route path="/dashboard/config"      element={<SystemConfigPage />} />
               <Route path="/dashboard/reports"     element={<ReportsPage />} />
-              <Route path="/dashboard/lookback"    element={<LookbackPage />} />
               <Route path="/dashboard/billing"     element={<BillingPage />} />
             </Route>
 
@@ -137,6 +136,7 @@ export default function AppRouter() {
               <Route path="/dashboard/issue"         element={<IssueBloodPage />} />
               <Route path="/dashboard/issue-records" element={<IssuedRecordsPage />} />
               <Route path="/dashboard/reactions"     element={<ReactionsPage />} />
+              <Route path="/dashboard/lookback"      element={<LookbackPage />} />
             </Route>
 
             {/* All staff roles */}

@@ -142,6 +142,7 @@ const SECTIONS = {
       { to: '/dashboard/issue',         icon: 'issue',      label: 'Issue Blood' },
       { to: '/dashboard/issue-records', icon: 'records',    label: 'Issued Records' },
       { to: '/dashboard/reactions',     icon: 'reactions',  label: 'Adverse Reactions' },
+      { to: '/dashboard/lookback',      icon: 'lookback',  label: 'Lookback' },
     ]},
     { label: 'Communication', links: [
       { to: '/dashboard/notifications', icon: 'bell', label: 'Notifications' },
