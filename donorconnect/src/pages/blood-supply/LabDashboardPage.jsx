@@ -11,7 +11,7 @@ const quickLinks = [
   { to: "/dashboard/donations", icon: "🩸", label: "Donations" },
   { to: "/dashboard/components", icon: "🧪", label: "Components" },
   { to: "/dashboard/test-results", icon: "✅", label: "Test Results" },
-  { to: "/dashboard/quarantine", icon: "🚫", label: "Quarantine & Recall" },
+  { to: "/dashboard/quarantine", icon: "🚫", label: "Quarantine & Disposal" },
 ];
 
 export default function LabDashboardPage() {
