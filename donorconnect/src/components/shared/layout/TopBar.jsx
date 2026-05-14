@@ -9,7 +9,7 @@ const ROUTE_TITLES = {
   '/dashboard/appointments': 'Appointments', '/dashboard/drives': 'Blood Drives',
   '/dashboard/deferrals': 'Deferral Management', '/dashboard/screenings': 'Screening',
   '/dashboard/donations': 'Donations', '/dashboard/components': 'Blood Components',
-  '/dashboard/test-results': 'Test Results', '/dashboard/quarantine': 'Quarantine & Recall',
+  '/dashboard/test-results': 'Test Results', '/dashboard/quarantine': 'Quarantine & Disposal',
   '/dashboard/inventory': 'Blood Stock', '/dashboard/stock-transactions': 'Stock Transactions',
   '/dashboard/expiry-watch': 'Expiry Watch', '/dashboard/crossmatch': 'Crossmatch',
   '/dashboard/issue': 'Issue Blood', '/dashboard/issue-records': 'Issued Records',

@@ -73,7 +73,7 @@ const SECTIONS = {
       { to: '/dashboard/donations',    icon: 'droplet',    label: 'Donations' },
       { to: '/dashboard/components',   icon: 'flask',      label: 'Components' },
       { to: '/dashboard/test-results', icon: 'test',       label: 'Test Results' },
-      { to: '/dashboard/quarantine',   icon: 'quarantine', label: 'Quarantine & Recall' },
+      { to: '/dashboard/quarantine',   icon: 'quarantine', label: 'Quarantine & Disposal' },
     ]},
     { label: 'Inventory', links: [
       { to: '/dashboard/inventory',          icon: 'dashboard',    label: 'Dashboard' },
@@ -119,7 +119,7 @@ const SECTIONS = {
       { to: '/dashboard/donations',    icon: 'droplet',    label: 'Donations' },
       { to: '/dashboard/components',   icon: 'flask',      label: 'Components' },
       { to: '/dashboard/test-results', icon: 'test',       label: 'Test Results' },
-      { to: '/dashboard/quarantine',   icon: 'quarantine', label: 'Quarantine & Recall' },
+      { to: '/dashboard/quarantine',   icon: 'quarantine', label: 'Quarantine & Disposal' },
     ]},
     { label: 'Communication', links: [
       { to: '/dashboard/notifications', icon: 'bell', label: 'Notifications' },
@@ -439,10 +439,3 @@ export default function Sidebar() {
     </>
   );
 }
-
-
-
-
-
-
-
