@@ -3,7 +3,7 @@ import api from '../../api/axiosInstance';
 import PageHeader from '../../components/shared/ui/PageHeader';
 import LoadingSpinner from '../../components/shared/ui/LoadingSpinner';
 import EmptyState from '../../components/shared/ui/EmptyState';
-
+ 
 /* ── Action colour + icon mapping ───────────────────────────────────── */
 const ACTION_META = {
   LOGIN:            { color: '#2ECC71', bg: 'rgba(46,204,113,0.12)',   icon: '🔓', label: 'Login' },
@@ -28,7 +28,7 @@ const ACTION_META = {
   USER_DEACTIVATED: { color: '#E74C3C', bg: 'rgba(231,76,60,0.12)',    icon: '🚫', label: 'User Deactivated' },
   CONFIG_CHANGE:    { color: '#E67E22', bg: 'rgba(230,126,34,0.12)',   icon: '⚙️', label: 'Config Change' },
 };
-
+ 
 const ROLE_META = {
   ADMIN:        { color: '#C1121F', bg: 'rgba(193,18,31,0.1)' },
   DOCTOR:       { color: '#3498DB', bg: 'rgba(52,152,219,0.12)' },
@@ -37,17 +37,17 @@ const ROLE_META = {
   RECEPTIONIST: { color: '#E67E22', bg: 'rgba(230,126,34,0.12)' },
   STAFF:        { color: '#1ABC9C', bg: 'rgba(26,188,156,0.12)' },
 };
-
+ 
 function getActionMeta(action = '') {
   const key = action.toUpperCase().replace(/[\s-]/g, '_');
   return ACTION_META[key] || { color: '#7F8C8D', bg: 'rgba(127,140,141,0.12)', icon: '📋', label: action };
 }
-
+ 
 function getRoleMeta(role = '') {
   const key = role.toUpperCase().replace(/[\s-]/g, '_');
   return ROLE_META[key] || { color: '#7F8C8D', bg: 'rgba(127,140,141,0.12)' };
 }
-
+ 
 function Pill({ label, color, bg, icon }) {
   return (
     <span style={{
@@ -61,7 +61,7 @@ function Pill({ label, color, bg, icon }) {
     </span>
   );
 }
-
+ 
 function formatTime(ts) {
   if (!ts) return '—';
   const d = new Date(ts);
@@ -71,7 +71,7 @@ function formatTime(ts) {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
+ 
 function formatFullTime(ts) {
   if (!ts) return '—';
   return new Date(ts).toLocaleString('en-IN', {
@@ -79,9 +79,9 @@ function formatFullTime(ts) {
     hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
 }
-
+ 
 const PER_PAGE = 15;
-
+ 
 export default function AuditLogPage() {
   const [logs,         setLogs]         = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -89,22 +89,29 @@ export default function AuditLogPage() {
   const [roleFilter,   setRoleFilter]   = useState('ALL');
   const [actionFilter, setActionFilter] = useState('ALL');
   const [page,         setPage]         = useState(1);
-
+ 
   useEffect(() => {
     const toArray = (p) => {
       if (Array.isArray(p)) return p;
       if (p?.content && Array.isArray(p.content)) return p.content;
+      if (p?.data?.content && Array.isArray(p.data.content)) return p.data.content;
+      if (p?.data && Array.isArray(p.data)) return p.data;
       return [];
     };
-    api.get('/api/v1/audit-logs')
-      .then(r => setLogs(toArray(r.data?.data ?? r.data)))
-      .catch(() => setLogs([]))
+    api.get('/api/v1/audit-logs?page=0&size=100')
+      .then(r => {
+        console.log('Audit logs raw response:', r.data);
+        const result = toArray(r.data?.data ?? r.data);
+        console.log('Audit logs parsed:', result.length, 'records');
+        setLogs(result);
+      })
+      .catch((e) => { console.error('Audit logs error:', e); setLogs([]); })
       .finally(() => setLoading(false));
   }, []);
-
+ 
   const roles   = useMemo(() => ['ALL', ...new Set(logs.map(l => l.userRole).filter(Boolean))], [logs]);
   const actions = useMemo(() => ['ALL', ...new Set(logs.map(l => l.action).filter(Boolean))], [logs]);
-
+ 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return logs.filter(l => {
@@ -115,12 +122,12 @@ export default function AuditLogPage() {
       return true;
     });
   }, [logs, search, roleFilter, actionFilter]);
-
+ 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
+ 
   useEffect(() => setPage(1), [search, roleFilter, actionFilter]);
-
+ 
   const exportCSV = () => {
     const header = 'ID,User,Role,Action,Resource,Timestamp\n';
     const rows = filtered.map(l =>
@@ -132,13 +139,13 @@ export default function AuditLogPage() {
     a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
   };
-
+ 
   return (
     <div className="animate-fadein">
       <PageHeader title="Audit Logs" subtitle="Full system activity trail — every action, every user">
         <button className="btn-glass" onClick={exportCSV}>📥 Export CSV</button>
       </PageHeader>
-
+ 
       {/* Summary chips */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
@@ -156,7 +163,7 @@ export default function AuditLogPage() {
           </div>
         ))}
       </div>
-
+ 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
         <div className="search-glass" style={{ flex: '1 1 220px', minWidth: 180 }}>
@@ -178,7 +185,7 @@ export default function AuditLogPage() {
           <button className="btn-glass" onClick={() => { setSearch(''); setRoleFilter('ALL'); setActionFilter('ALL'); }}>✕ Clear</button>
         )}
       </div>
-
+ 
       {/* Table */}
       <div className="table-wrapper">
         {loading ? <LoadingSpinner /> : paginated.length === 0 ? <EmptyState /> : (
@@ -255,7 +262,7 @@ export default function AuditLogPage() {
             </table>
           </div>
         )}
-
+ 
         {/* Pagination */}
         {!loading && filtered.length > PER_PAGE && (
           <div style={{

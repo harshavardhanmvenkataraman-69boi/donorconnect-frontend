@@ -28,7 +28,7 @@ import NotificationsPage from '../pages/admin/NotificationsPage';
 
 // Donor Service
 import DonorListPage from '../pages/donor-service/DonorListPage';
-import DonorRegisterPage from '../pages/donor-service/DonorRegisterPage';
+import DonorRegisterPage from "../pages/donor-service/DonorRegisterPage";
 import AppointmentsPage from '../pages/donor-service/AppointmentsPage';
 import DrivesPage from '../pages/donor-service/DrivesPage';
 import DeferralsPage from '../pages/donor-service/DeferralsPage';
@@ -38,7 +38,8 @@ import ScreeningPage from '../pages/donor-service/ScreeningPage';
 import DonationsPage from '../pages/blood-supply/DonationsPage';
 import BloodComponentsPage from '../pages/blood-supply/BloodComponentsPage';
 import TestResultsPage from '../pages/blood-supply/TestResultsPage';
-import QuarantineRecallPage from '../pages/blood-supply/QuarantineRecallPage';
+import QuarantineDisposalPage from '../pages/blood-supply/QuarantineDisposalPage';
+import LabDashboardPage from '../pages/blood-supply/LabDashboardPage';
 
 // Inventory
 import {
@@ -102,7 +103,6 @@ export default function AppRouter() {
               <Route path="/dashboard/audit-logs"  element={<AuditLogPage />} />
               <Route path="/dashboard/config"      element={<SystemConfigPage />} />
               <Route path="/dashboard/reports"     element={<ReportsPage />} />
-              <Route path="/dashboard/lookback"    element={<LookbackPage />} />
               <Route path="/dashboard/billing"     element={<BillingPage />} />
             </Route>
 
@@ -121,10 +121,11 @@ export default function AppRouter() {
 
             {/* Blood Supply */}
             <Route element={<RoleGuard allowed={LAB} />}>
-              <Route path="/dashboard/donations"   element={<DonationsPage />} />
-              <Route path="/dashboard/components"  element={<BloodComponentsPage />} />
-              <Route path="/dashboard/test-results"element={<TestResultsPage />} />
-              <Route path="/dashboard/quarantine"  element={<QuarantineRecallPage />} />
+              <Route path="/dashboard/lab" element={<LabDashboardPage />} />
+              <Route path="/dashboard/donations" element={<DonationsPage />} />
+              <Route path="/dashboard/components" element={<BloodComponentsPage />} />
+              <Route path="/dashboard/test-results" element={<TestResultsPage />} />
+              <Route path="/dashboard/quarantine" element={<QuarantineDisposalPage />} />
             </Route>
 
             {/* Inventory */}
@@ -141,6 +142,7 @@ export default function AppRouter() {
               <Route path="/dashboard/issue"         element={<IssueBloodPage />} />
               <Route path="/dashboard/issue-records" element={<IssuedRecordsPage />} />
               <Route path="/dashboard/reactions"     element={<ReactionsPage />} />
+              <Route path="/dashboard/lookback"      element={<LookbackPage />} />
             </Route>
 
             {/* Donor Portal */}

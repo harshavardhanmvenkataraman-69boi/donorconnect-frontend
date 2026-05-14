@@ -93,7 +93,7 @@ export default function HomePage() {
                 <Link to="/awareness"><button className="btn-glass" style={{ padding:'13px 24px', fontSize:'0.95rem' }}>Learn About Donating</button></Link>
               </div>
             </Col>
-            <Col lg={6} className="mt-5 mt-lg-0">
+            {/* <Col lg={6} className="mt-5 mt-lg-0">
               <div style={{ position:'relative' }}>
                 <div className="glass-card p-4" style={{ maxWidth:380, margin:'0 auto' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
@@ -108,7 +108,7 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-            </Col>
+            </Col> */}
           </Row>
         </Container>
       </section>

@@ -1,17 +1,28 @@
 import { useState } from 'react'
-import { Row, Col } from 'react-bootstrap'
 import PageHeader from '../../shared/ui/PageHeader'
 import api from '../../../api/axiosInstance'
 import { showError } from '../../shared/ui/AlertBanner'
 
+const INIT_FORM = { componentId: '', patientId: '', issuedBy: '', indication: '' }
+
 export default function IssueBloodForm({ onSubmit, loading }) {
-  const [form, setForm] = useState({ componentId: '', patientId: '', issuedBy: '', indication: '' })
-  const [confirmed, setConfirmed] = useState(false)
-  const [patientIdInput, setPatientIdInput] = useState('')
+  const [form, setForm]                             = useState(INIT_FORM)
+  const [confirmed, setConfirmed]                   = useState(false)
+  const [patientIdInput, setPatientIdInput]         = useState('')
   const [reservedComponents, setReservedComponents] = useState([])
   const [fetchingComponents, setFetchingComponents] = useState(false)
-  const [allIssued, setAllIssued] = useState(false)
-  const [searched, setSearched] = useState(false)
+  const [allIssued, setAllIssued]                   = useState(false)
+  const [searched, setSearched]                     = useState(false)
+
+  // Resets entire form to initial state — called by parent after successful issue
+  const resetForm = () => {
+    setForm(INIT_FORM)
+    setConfirmed(false)
+    setPatientIdInput('')
+    setReservedComponents([])
+    setAllIssued(false)
+    setSearched(false)
+  }
 
   const fetchReservedComponents = async (patientId) => {
     if (!patientId) return
@@ -53,10 +64,10 @@ export default function IssueBloodForm({ onSubmit, loading }) {
             compatibleResults.forEach(result => {
               if (!alreadyIssuedIds.has(String(result.componentId))) {
                 availableComponents.push({
-                  componentId: result.componentId,
-                  requestId: req.requestId,
-                  bloodGroup: req.bloodGroup,
-                  rhFactor: req.rhFactor,
+                  componentId:   result.componentId,
+                  requestId:     req.requestId,
+                  bloodGroup:    req.bloodGroup,
+                  rhFactor:      req.rhFactor,
                   componentType: req.componentType || 'PRBC',
                 })
               }
@@ -73,7 +84,7 @@ export default function IssueBloodForm({ onSubmit, loading }) {
         setForm(prev => ({
           ...prev,
           componentId: String(availableComponents[0].componentId),
-          indication: '',
+          indication:  '',
         }))
       }
     } catch {
@@ -83,11 +94,13 @@ export default function IssueBloodForm({ onSubmit, loading }) {
     }
   }
 
-  const selectedComponent = reservedComponents.find(c => String(c.componentId) === String(form.componentId))
+  const selectedComponent = reservedComponents.find(
+    c => String(c.componentId) === String(form.componentId)
+  )
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit(form)
+    onSubmit(form, resetForm)  // ← pass resetForm as second arg
   }
 
   return (
@@ -96,6 +109,7 @@ export default function IssueBloodForm({ onSubmit, loading }) {
       <div style={{ maxWidth: 620, margin: '0 auto' }}>
         <div className="glass-card p-4">
           <form onSubmit={handleSubmit}>
+
             {/* Patient ID search */}
             <div style={{ marginBottom: 20 }}>
               <label className="form-label">Patient ID *</label>
@@ -110,7 +124,7 @@ export default function IssueBloodForm({ onSubmit, loading }) {
                     setReservedComponents([])
                     setAllIssued(false)
                     setSearched(false)
-                    setForm({ componentId: '', patientId: '', issuedBy: '', indication: '' })
+                    setForm(INIT_FORM)
                     setConfirmed(false)
                   }}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), fetchReservedComponents(patientIdInput))}
@@ -129,15 +143,11 @@ export default function IssueBloodForm({ onSubmit, loading }) {
 
             {/* All components already issued */}
             {allIssued && (
-              <div
-                style={{
-                  background: 'rgba(34,197,94,0.08)',
-                  border: '1px solid rgba(34,197,94,0.25)',
-                  borderRadius: 12,
-                  padding: '20px 18px',
-                  textAlign: 'center',
-                }}
-              >
+              <div style={{
+                background: 'rgba(34,197,94,0.08)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                borderRadius: 12, padding: '20px 18px', textAlign: 'center',
+              }}>
                 <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>✅</div>
                 <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>All Components Issued</div>
                 <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
@@ -172,25 +182,19 @@ export default function IssueBloodForm({ onSubmit, loading }) {
                     ))}
                   </select>
 
-                  {/* Selected component pills */}
                   {selectedComponent && (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                       {[
-                        ['Type', selectedComponent.componentType],
+                        ['Type',        selectedComponent.componentType],
                         ['Blood Group', `${selectedComponent.bloodGroup} ${selectedComponent.rhFactor}`],
-                        ['Request', `${selectedComponent.requestId}`],
+                        ['Request',     `${selectedComponent.requestId}`],
                       ].map(([label, value]) => (
-                        <div
-                          key={label}
-                          style={{
-                            background: 'var(--crimson-pale)',
-                            border: '1px solid var(--border-light)',
-                            borderRadius: 20,
-                            padding: '3px 12px',
-                            fontSize: '0.78rem',
-                            color: 'var(--text-primary)',
-                          }}
-                        >
+                        <div key={label} style={{
+                          background: 'var(--crimson-pale)',
+                          border: '1px solid var(--border-light)',
+                          borderRadius: 20, padding: '3px 12px',
+                          fontSize: '0.78rem', color: 'var(--text-primary)',
+                        }}>
                           <span style={{ color: 'var(--text-muted)' }}>{label}: </span>
                           <strong>{value}</strong>
                         </div>
@@ -203,60 +207,42 @@ export default function IssueBloodForm({ onSubmit, loading }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                   <div>
                     <label className="form-label">Issued By *</label>
-                    <input
-                      required
-                      className="form-control"
+                    <input required className="form-control"
                       placeholder="Transfusion officer name"
                       value={form.issuedBy}
-                      onChange={e => setForm({ ...form, issuedBy: e.target.value })}
-                    />
+                      onChange={e => setForm({ ...form, issuedBy: e.target.value })} />
                   </div>
                   <div>
                     <label className="form-label">Indication *</label>
-                    <input
-                      required
-                      className="form-control"
+                    <input required className="form-control"
                       placeholder="e.g. Anaemia, Surgery"
                       value={form.indication}
-                      onChange={e => setForm({ ...form, indication: e.target.value })}
-                    />
+                      onChange={e => setForm({ ...form, indication: e.target.value })} />
                   </div>
                 </div>
 
                 {/* Warning */}
                 {form.componentId && (
-                  <div
-                    style={{
-                      background: 'rgba(245,158,11,0.08)',
-                      border: '1px solid rgba(245,158,11,0.25)',
-                      borderRadius: 10,
-                      padding: '12px 14px',
-                      fontSize: '0.84rem',
-                      color: 'var(--text-primary)',
-                      marginBottom: 16,
-                    }}
-                  >
-                    ⚠️ Issuing <strong>Component {form.componentId}</strong> to <strong>Patient {patientIdInput}</strong>. This action cannot be undone.
+                  <div style={{
+                    background: 'rgba(245,158,11,0.08)',
+                    border: '1px solid rgba(245,158,11,0.25)',
+                    borderRadius: 10, padding: '12px 14px',
+                    fontSize: '0.84rem', color: 'var(--text-primary)', marginBottom: 16,
+                  }}>
+                    ⚠️ Issuing <strong>Component {form.componentId}</strong> to{' '}
+                    <strong>Patient {patientIdInput}</strong>. This action cannot be undone.
                   </div>
                 )}
 
                 {/* Confirmation checkbox */}
-                <div
-                  style={{
-                    background: 'var(--crimson-pale)',
-                    padding: '14px 16px',
-                    borderRadius: 10,
-                    border: '1px solid var(--border-light)',
-                    marginBottom: 20,
-                  }}
-                >
+                <div style={{
+                  background: 'var(--crimson-pale)', padding: '14px 16px',
+                  borderRadius: 10, border: '1px solid var(--border-light)', marginBottom: 20,
+                }}>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      style={{ marginTop: 3 }}
+                    <input type="checkbox" style={{ marginTop: 3 }}
                       checked={confirmed}
-                      onChange={e => setConfirmed(e.target.checked)}
-                    />
+                      onChange={e => setConfirmed(e.target.checked)} />
                     <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.5 }}>
                       I confirm this component is crossmatch-compatible and authorized for transfusion.
                     </span>
