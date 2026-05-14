@@ -16,10 +16,21 @@ export default function UserManagementPage() {
   const [confirm, setConfirm] = useState(null);
   const [form, setForm] = useState({ name:'', email:'', password:'', role:'ROLE_DONOR' });
 
-  const load = () => { setLoading(true); api.get('/api/v1/users?page=0&size=50').then(r => setUsers(r.data?.data?.content || r.data?.content || [])).catch(() => setUsers([])).finally(() => setLoading(false)); };
+  const load = () => {
+    setLoading(true);
+    api.get('/api/v1/users?page=0&size=50')
+      .then(r => {
+        // ApiResponse wraps Page<User>: r.data.data.content
+        const data = r.data?.data?.content ?? r.data?.content ?? r.data?.data ?? [];
+        setUsers(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  };
   useEffect(load, []);
 
   const doAction = async (userId, action) => {
+    if (!userId) { showError('User ID missing'); return; }
     try { await api.patch(`/api/v1/users/${userId}/${action}`); showSuccess('User updated'); load(); }
     catch (e) { showError(e.response?.data?.message || 'Action failed'); }
   };
@@ -30,11 +41,20 @@ export default function UserManagementPage() {
   };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role', render: v => <span className="status-badge primary">{v?.replace('ROLE_','')}</span> },
-    { key: 'status', label: 'Status', render: v => <StatusBadge status={v} /> },
+    { key: 'userId', label: 'ID', render: v => (
+      <span style={{ fontFamily:'monospace', fontSize:'0.78rem', background:'rgba(0,0,0,0.04)', borderRadius:6, padding:'2px 8px', color:'var(--text-muted)', fontWeight:600 }}>#{v}</span>
+    )},
+    { key: 'name',  label: 'Name',  render: (v, row) => (
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ width:30, height:30, borderRadius:'50%', background:'linear-gradient(135deg,var(--crimson),var(--blood-dark))', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'0.7rem', fontWeight:700, flexShrink:0 }}>
+          {(v ?? '?')[0].toUpperCase()}
+        </div>
+        <span style={{ fontWeight:600, fontSize:'0.85rem' }}>{v}</span>
+      </div>
+    )},
+    { key: 'email', label: 'Email', render: v => <span style={{ fontSize:'0.82rem', color:'var(--text-secondary)' }}>{v}</span> },
+    { key: 'role',  label: 'Role',  render: v => <span className="status-badge primary">{v?.replace('ROLE_','')}</span> },
+    { key: 'status',label: 'Status',render: v => <StatusBadge status={v} /> },
   ];
 
   return (
@@ -45,9 +65,9 @@ export default function UserManagementPage() {
       <div className="table-wrapper">
         <DataTable columns={columns} data={users} loading={loading} actions={row => (
           <div className="d-flex gap-2">
-            {row.status !== 'LOCKED' && <button className="btn-icon" title="Lock" onClick={() => doAction(row.id,'lock')}>🔒</button>}
-            {row.status === 'LOCKED' && <button className="btn-icon success" title="Unlock" onClick={() => doAction(row.id,'unlock')}>🔓</button>}
-            {row.status === 'ACTIVE' && <button className="btn-icon danger" title="Deactivate" onClick={() => setConfirm({ id: row.id, action: 'deactivate' })}>✕</button>}
+            {row.status !== 'LOCKED'  && <button className="btn-icon" title="Lock"       onClick={() => doAction(row.userId, 'lock')}>🔒</button>}
+            {row.status === 'LOCKED'  && <button className="btn-icon success" title="Unlock"    onClick={() => doAction(row.userId, 'unlock')}>🔓</button>}
+            {row.status === 'ACTIVE'  && <button className="btn-icon danger"  title="Deactivate" onClick={() => setConfirm({ id: row.userId, action: 'deactivate' })}>✕</button>}
           </div>
         )} />
       </div>
