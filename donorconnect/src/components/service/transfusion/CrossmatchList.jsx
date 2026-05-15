@@ -3,27 +3,17 @@ import { Modal, Row, Col } from 'react-bootstrap'
 import DataTable from '../../shared/ui/DataTable'
 import StatusBadge from '../../shared/ui/StatusBadge'
 import PageHeader from '../../shared/ui/PageHeader'
+import Pagination from '../../shared/ui/Pagination'
 
 const BloodGroupBadge = ({ bloodGroup, rhFactor }) => {
-  const bgColorMap = {
-    'O': 'rgba(239, 68, 68, 0.1)', 'A': 'rgba(59, 130, 246, 0.1)',
-    'B': 'rgba(34, 197, 94, 0.1)', 'AB': 'rgba(168, 85, 247, 0.1)',
-  }
-  const textColorMap = {
-    'O': 'rgb(220, 38, 38)', 'A': 'rgb(37, 99, 235)',
-    'B': 'rgb(22, 163, 74)', 'AB': 'rgb(147, 51, 234)',
-  }
-  const bg = bgColorMap[bloodGroup] || bgColorMap['O']
+  const bgColorMap  = { 'O': 'rgba(239, 68, 68, 0.1)', 'A': 'rgba(59, 130, 246, 0.1)', 'B': 'rgba(34, 197, 94, 0.1)', 'AB': 'rgba(168, 85, 247, 0.1)' }
+  const textColorMap = { 'O': 'rgb(220, 38, 38)', 'A': 'rgb(37, 99, 235)', 'B': 'rgb(22, 163, 74)', 'AB': 'rgb(147, 51, 234)' }
+  const bg        = bgColorMap[bloodGroup]  || bgColorMap['O']
   const textColor = textColorMap[bloodGroup] || textColorMap['O']
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: bg, border: `1.5px solid ${textColor}`,
-      borderRadius: 20, padding: '4px 12px',
-      fontWeight: 600, fontSize: '0.85rem', color: textColor, whiteSpace: 'nowrap',
-    }}>
+    <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:bg, border:`1.5px solid ${textColor}`, borderRadius:20, padding:'4px 12px', fontWeight:600, fontSize:'0.85rem', color:textColor, whiteSpace:'nowrap' }}>
       <span>{bloodGroup}</span>
-      <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>{rhFactor === 'POSITIVE' ? '+' : '−'}</span>
+      <span style={{ fontSize:'0.75rem', opacity:0.8 }}>{rhFactor === 'POSITIVE' ? '+' : '−'}</span>
     </div>
   )
 }
@@ -40,6 +30,7 @@ const getActionLabel = (status) => {
 export default function CrossmatchList({
   tab, requests, loading, showNew, showResult, form, resultForm,
   patientIdFilter, patientError,
+  page, totalPages, totalElements, pageSize, onPageChange,
   onPatientIdFilterChange, onSearchByPatient, onClearPatientSearch,
   onTabChange, onNewClick, onNewClose, onFormChange, onCreate,
   onResultClose, onResultFormChange, onSubmitResult, onRecordResult,
@@ -63,22 +54,17 @@ export default function CrossmatchList({
       </PageHeader>
 
       {/* Search bar */}
-      <div className="mb-3" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <label className="form-label" style={{ marginBottom: 0, minWidth: 90 }}>Patient search</label>
-            <input
-              type="number"
-              className={`form-control${patientError ? ' is-invalid' : ''}`}
-              style={{ width: 180 }}
-              placeholder="Patient ID"
-              value={patientIdFilter}
+      <div className="mb-3" style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-start' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <label className="form-label" style={{ marginBottom:0, minWidth:90 }}>Patient search</label>
+            <input type="number" className={`form-control${patientError?' is-invalid':''}`} style={{ width:180 }}
+              placeholder="Patient ID" value={patientIdFilter}
               onChange={e => onPatientIdFilterChange(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && onSearchByPatient()}
-            />
+              onKeyDown={e => e.key === 'Enter' && onSearchByPatient()} />
           </div>
           {patientError && (
-            <div style={{ marginLeft: 98, fontSize: '0.78rem', color: 'rgb(220, 38, 38)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ marginLeft:98, fontSize:'0.78rem', color:'rgb(220,38,38)', display:'flex', alignItems:'center', gap:4 }}>
               ⚠️ {patientError}
             </div>
           )}
@@ -103,27 +89,13 @@ export default function CrossmatchList({
           actions={row => {
             const action = getActionLabel(row.status)
             return (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-
-                {/* Same View button as StockOverview */}
-                <button
-                  className="btn-glass"
-                  style={{ fontSize: '0.75rem' }}
-                  onClick={() => setViewRow(row)}
-                >
-                  View
-                </button>
-
-                {/* Status action */}
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                <button className="btn-glass" style={{ fontSize:'0.75rem' }} onClick={() => setViewRow(row)}>View</button>
                 {action?.type === 'button' && (
-                  <button className="btn-glass" style={{ fontSize: '0.85rem' }} onClick={() => onRecordResult(row)}>
-                    {action.label}
-                  </button>
+                  <button className="btn-glass" style={{ fontSize:'0.85rem' }} onClick={() => onRecordResult(row)}>{action.label}</button>
                 )}
                 {action?.type === 'badge' && (
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', background: action.bg, border: action.border, borderRadius: 6, fontSize: '0.85rem', fontWeight: 500, color: action.color }}>
-                    {action.label}
-                  </div>
+                  <div style={{ display:'flex', alignItems:'center', padding:'6px 12px', background:action.bg, border:action.border, borderRadius:6, fontSize:'0.85rem', fontWeight:500, color:action.color }}>{action.label}</div>
                 )}
               </div>
             )
@@ -131,15 +103,24 @@ export default function CrossmatchList({
         />
       </div>
 
+      {/* Pagination — only shows on "all" tab with server pagination */}
+      {tab === 'all' && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+        />
+      )}
+
       {/* ── View Detail Modal ── */}
       <Modal show={!!viewRow} onHide={() => setViewRow(null)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Request #{viewRow?.requestId}</Modal.Title>
-        </Modal.Header>
+        <Modal.Header closeButton><Modal.Title>Request #{viewRow?.requestId}</Modal.Title></Modal.Header>
         <Modal.Body>
           {viewRow && (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              <div style={{ textAlign:'center', marginBottom:20 }}>
                 <BloodGroupBadge bloodGroup={viewRow.bloodGroup} rhFactor={viewRow.rhFactor} />
               </div>
               {[
@@ -151,35 +132,33 @@ export default function CrossmatchList({
                 ['Ordered By',     viewRow.orderBy || '—'],
                 ['Request Date',   viewRow.requestDate ?? '—'],
               ].map(([label, value]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-                  <span style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>{value}</span>
+                <div key={label} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--border-light)' }}>
+                  <span style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{label}</span>
+                  <span style={{ fontSize:'0.88rem', color:'var(--text-primary)', fontWeight:500 }}>{value}</span>
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Priority</span>
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--border-light)' }}>
+                <span style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.04em' }}>Priority</span>
                 <StatusBadge status={viewRow.priority} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</span>
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--border-light)' }}>
+                <span style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.04em' }}>Status</span>
                 <StatusBadge status={viewRow.status} />
               </div>
               {viewRow.availableComponentIds && (
-                <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Available Components</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ padding:'10px 0', borderBottom:'1px solid var(--border-light)' }}>
+                  <div style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:8 }}>Available Components</div>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                     {viewRow.availableComponentIds.split(',').filter(Boolean).map(id => (
-                      <span key={id.trim()} style={{ background: 'var(--crimson-pale)', border: '1px solid var(--border-light)', borderRadius: 6, padding: '2px 10px', fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.82rem' }}>
-                        {id.trim()}
-                      </span>
+                      <span key={id.trim()} style={{ background:'var(--crimson-pale)', border:'1px solid var(--border-light)', borderRadius:6, padding:'2px 10px', fontWeight:600, color:'var(--text-primary)', fontSize:'0.82rem' }}>{id.trim()}</span>
                     ))}
                   </div>
                 </div>
               )}
               {viewRow.notes && (
-                <div style={{ padding: '10px 0' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Notes</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>{viewRow.notes}</div>
+                <div style={{ padding:'10px 0' }}>
+                  <div style={{ fontSize:'0.8rem', fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:6 }}>Notes</div>
+                  <div style={{ fontSize:'0.85rem', color:'var(--text-primary)', lineHeight:1.6 }}>{viewRow.notes}</div>
                 </div>
               )}
             </div>
@@ -187,9 +166,7 @@ export default function CrossmatchList({
         </Modal.Body>
         <Modal.Footer>
           {viewRow?.status?.toUpperCase() === 'PENDING' && (
-            <button className="btn-crimson" onClick={() => { onRecordResult(viewRow); setViewRow(null) }}>
-              📝 Record Result
-            </button>
+            <button className="btn-crimson" onClick={() => { onRecordResult(viewRow); setViewRow(null) }}>📝 Record Result</button>
           )}
           <button className="btn-glass" onClick={() => setViewRow(null)}>Close</button>
         </Modal.Footer>

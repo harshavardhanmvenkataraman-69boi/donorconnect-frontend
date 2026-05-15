@@ -27,7 +27,7 @@ const INIT_FORM = {
 export default function TestResultsPage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("ALL");
+  const [tab, setTab] = useState("NON_REACTIVE");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(INIT_FORM);
   const [searchId, setSearchId] = useState("");
@@ -40,25 +40,13 @@ export default function TestResultsPage() {
     setTab(t);
     setLoading(true);
     try {
-      if (t === "PENDING") {
-        const r = await api.get("/api/test-results/pending");
-        setResults(Array.isArray(r.data?.data) ? r.data.data : []);
-      } else if (t === "REACTIVE") {
-        const r = await api.get("/api/test-results/reactive");
-        setResults(Array.isArray(r.data?.data) ? r.data.data : []);
-      } else {
-        const [p, rx] = await Promise.allSettled([
-          api.get("/api/test-results/pending"),
-          api.get("/api/test-results/reactive"),
-        ]);
-        const all = [
-          ...(Array.isArray(p.value?.data?.data) ? p.value.data.data : []),
-          ...(Array.isArray(rx.value?.data?.data) ? rx.value.data.data : []),
-        ];
-        setResults(
-          t === "COMPLETED" ? all.filter((r) => r.status === "COMPLETED") : all,
-        );
-      }
+      // Two clean tabs, each backed by its own endpoint.
+      const endpoint =
+        t === "REACTIVE"
+          ? "/api/test-results/reactive"
+          : "/api/test-results/non-reactive";
+      const r = await api.get(endpoint);
+      setResults(Array.isArray(r.data?.data) ? r.data.data : []);
     } catch {
       setResults([]);
     } finally {
@@ -66,7 +54,7 @@ export default function TestResultsPage() {
     }
   };
   useEffect(() => {
-    loadByTab("ALL");
+    loadByTab("NON_REACTIVE");
   }, []);
 
   const searchByDonation = async () => {
@@ -140,6 +128,111 @@ export default function TestResultsPage() {
     }
   };
 
+  // ---- Bulk entry state ----
+  // Bulk modal lets the lab tech enter all 7 standard tests in one go.
+  // Defaults make the happy path one click: just type donationId, hit Submit.
+  const BULK_DEFAULTS = {
+    HIV: "Non-Reactive",
+    HBV: "Non-Reactive",
+    HCV: "Non-Reactive",
+    VDRL: "Non-Reactive",
+    MALARIA: "Non-Reactive",
+    BLOOD_GROUP: "A",
+    RH: "POSITIVE",
+  };
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkForm, setBulkForm] = useState({
+    donationId: "",
+    enteredBy: "",
+    results: { ...BULK_DEFAULTS },
+  });
+  const [bulkDonationStatus, setBulkDonationStatus] = useState("idle");
+  const bulkDebounceRef = useRef(null);
+
+  const checkBulkDonation = (id) => {
+    if (!id) {
+      setBulkDonationStatus("idle");
+      return;
+    }
+    setBulkDonationStatus("checking");
+    clearTimeout(bulkDebounceRef.current);
+    bulkDebounceRef.current = setTimeout(async () => {
+      try {
+        const r = await api.get(`/api/donations/${id}`);
+        setBulkDonationStatus(r.data?.data ? "valid" : "invalid");
+      } catch {
+        setBulkDonationStatus("invalid");
+      }
+    }, 500);
+  };
+
+  const submitBulk = async () => {
+    if (!bulkForm.donationId) {
+      showError("Donation ID is required");
+      return;
+    }
+    if (bulkDonationStatus === "invalid") {
+      showError("Donation ID does not exist.");
+      return;
+    }
+    // All 7 result strings must be filled.
+    const missing = Object.entries(bulkForm.results)
+      .filter(([, v]) => !v || !v.trim())
+      .map(([k]) => k);
+    if (missing.length > 0) {
+      showError("Fill all results. Missing: " + missing.join(", "));
+      return;
+    }
+    try {
+      const trimmed = Object.fromEntries(
+        Object.entries(bulkForm.results).map(([k, v]) => [k, v.trim()]),
+      );
+      const reactiveCount = Object.values(trimmed).filter(
+        (v) => v.toUpperCase() === "REACTIVE",
+      ).length;
+      await api.post("/api/test-results/bulk", {
+        donationId: Number(bulkForm.donationId),
+        enteredBy: bulkForm.enteredBy || undefined,
+        results: trimmed,
+      });
+      showSuccess(
+        reactiveCount > 0
+          ? `All 7 tests saved (${reactiveCount} reactive — quarantine + deferral pipeline fired).`
+          : "All 7 tests saved successfully.",
+      );
+      setShowBulkModal(false);
+      setBulkForm({
+        donationId: "",
+        enteredBy: "",
+        results: { ...BULK_DEFAULTS },
+      });
+      setBulkDonationStatus("idle");
+      loadByTab(tab);
+    } catch (e) {
+      showError(e?.response?.data?.message || "Bulk submit failed");
+    }
+  };
+
+  const closeBulkModal = () => {
+    setShowBulkModal(false);
+    setBulkForm({
+      donationId: "",
+      enteredBy: "",
+      results: { ...BULK_DEFAULTS },
+    });
+    setBulkDonationStatus("idle");
+  };
+
+  const bulkIndicator = () => {
+    if (bulkDonationStatus === "checking")
+      return { color: "#f0a500", text: "⏳ Checking..." };
+    if (bulkDonationStatus === "valid")
+      return { color: "#2ec27e", text: "✅ Donation found" };
+    if (bulkDonationStatus === "invalid")
+      return { color: "#e05260", text: "❌ Donation not found" };
+    return null;
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setForm(INIT_FORM);
@@ -174,18 +267,30 @@ export default function TestResultsPage() {
   return (
     <div className="animate-fadein">
       <PageHeader title="Test Results">
-        <button className="btn-crimson" onClick={() => setShowModal(true)}>
-          + Enter Result
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            className="btn-glass"
+            onClick={() => setShowBulkModal(true)}
+            title="Enter all 7 mandatory tests for one donation in one go"
+          >
+            ⚡ Enter All Tests
+          </button>
+          <button className="btn-crimson" onClick={() => setShowModal(true)}>
+            + Enter Result
+          </button>
+        </div>
       </PageHeader>
       <div className="nav-tabs-glass mb-3">
-        {["ALL", "PENDING", "COMPLETED", "REACTIVE"].map((t) => (
+        {[
+          { key: "NON_REACTIVE", label: "Non-Reactive" },
+          { key: "REACTIVE", label: "Reactive" },
+        ].map((t) => (
           <button
-            key={t}
-            className={`nav-link${tab === t ? " active" : ""}`}
-            onClick={() => loadByTab(t)}
+            key={t.key}
+            className={`nav-link${tab === t.key ? " active" : ""}`}
+            onClick={() => loadByTab(t.key)}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -227,6 +332,41 @@ export default function TestResultsPage() {
             Type <strong>"REACTIVE"</strong> as result to flag. Status is set
             automatically.
           </div>
+          {form.result.trim().toUpperCase() === "REACTIVE" && (
+            <div
+              className="alert-glass danger mb-3"
+              style={{ fontSize: "0.82rem" }}
+            >
+              <strong>⚠ Reactive result detected.</strong>
+              <div style={{ marginTop: 4 }}>Submitting this will:</div>
+              <ul style={{ marginTop: 4, marginBottom: 0, paddingLeft: 18 }}>
+                <li>
+                  Auto-move any existing components for donation{" "}
+                  <code>{form.donationId || "—"}</code> to <strong>QUARANTINE</strong>
+                </li>
+                <li>
+                  Block future components for this donation from entering inventory
+                  (they will be auto-quarantined on registration)
+                </li>
+                <li>
+                  Defer the donor:{" "}
+                  <strong>
+                    {["HIV", "HBV", "HCV", "NAT"].includes(form.testType)
+                      ? "PERMANENT"
+                      : ["VDRL", "MALARIA"].includes(form.testType)
+                        ? "TEMPORARY"
+                        : "no deferral"}
+                  </strong>{" "}
+                  (based on test type {form.testType})
+                </li>
+              </ul>
+              <div style={{ marginTop: 6, opacity: 0.85 }}>
+                A supervisor will later review the quarantined components in the
+                Quarantine & Disposal page — they can either release (if re-test
+                clears) or dispose (confirmed unsafe).
+              </div>
+            </div>
+          )}
           <Row className="g-3">
             <Col xs={12}>
               <label className="form-label">
@@ -318,6 +458,183 @@ export default function TestResultsPage() {
             }}
           >
             Submit
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ====================== BULK ENTRY MODAL ====================== */}
+      <Modal show={showBulkModal} onHide={closeBulkModal} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Enter All Tests (Bulk)</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div
+            className="alert-glass mb-3"
+            style={{ fontSize: "0.82rem", borderLeft: "4px solid #6c8eef" }}
+          >
+            Enter all 7 mandatory tests for one donation in a single submission.
+            Default values are pre-filled for the happy path — just type the
+            donation ID and click Submit. To simulate a reactive case, change
+            any field to <code>REACTIVE</code>.
+          </div>
+
+          {(() => {
+            const reactiveTests = Object.entries(bulkForm.results)
+              .filter(([, v]) => v && v.trim().toUpperCase() === "REACTIVE")
+              .map(([k]) => k);
+            if (reactiveTests.length === 0) return null;
+            const hasPerm = reactiveTests.some((t) =>
+              ["HIV", "HBV", "HCV", "NAT"].includes(t),
+            );
+            const hasTemp = reactiveTests.some((t) =>
+              ["VDRL", "MALARIA"].includes(t),
+            );
+            return (
+              <div
+                className="alert-glass danger mb-3"
+                style={{ fontSize: "0.82rem" }}
+              >
+                <strong>⚠ {reactiveTests.length} reactive result(s):</strong>{" "}
+                <code>{reactiveTests.join(", ")}</code>
+                <div style={{ marginTop: 4 }}>
+                  Components for this donation will be auto-quarantined. Donor
+                  will be{" "}
+                  <strong>
+                    {hasPerm
+                      ? "PERMANENTLY"
+                      : hasTemp
+                        ? "TEMPORARILY"
+                        : "NOT"}
+                  </strong>{" "}
+                  deferred.
+                </div>
+              </div>
+            );
+          })()}
+
+          <Row className="g-3">
+            <Col xs={12} md={8}>
+              <label className="form-label">
+                Donation ID <span className="text-danger">*</span>
+              </label>
+              <input
+                type="number"
+                className={`form-control ${bulkDonationStatus === "valid" ? "is-valid" : bulkDonationStatus === "invalid" ? "is-invalid" : ""}`}
+                value={bulkForm.donationId}
+                onChange={(e) => {
+                  setBulkForm({ ...bulkForm, donationId: e.target.value });
+                  checkBulkDonation(e.target.value);
+                }}
+                placeholder="Enter donation ID to verify"
+              />
+              {bulkIndicator() && (
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    marginTop: 4,
+                    color: bulkIndicator().color,
+                    fontWeight: 600,
+                  }}
+                >
+                  {bulkIndicator().text}
+                </div>
+              )}
+            </Col>
+            <Col xs={12} md={4}>
+              <label className="form-label">Entered By</label>
+              <input
+                type="text"
+                className="form-control"
+                value={bulkForm.enteredBy}
+                onChange={(e) =>
+                  setBulkForm({ ...bulkForm, enteredBy: e.target.value })
+                }
+                placeholder="Lab tech name"
+              />
+            </Col>
+
+            <Col xs={12}>
+              <hr style={{ opacity: 0.3, margin: "8px 0 4px" }} />
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  opacity: 0.7,
+                  marginBottom: 8,
+                }}
+              >
+                Tests — pre-filled with happy-path defaults. Change any to{" "}
+                <code>REACTIVE</code> to simulate a positive result.
+              </div>
+            </Col>
+
+            {Object.keys(BULK_DEFAULTS).map((testType) => {
+              const v = bulkForm.results[testType] || "";
+              const isReactive = v.trim().toUpperCase() === "REACTIVE";
+              return (
+                <Col xs={12} md={6} key={testType}>
+                  <label className="form-label" style={{ fontWeight: 600 }}>
+                    {testType}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    style={
+                      isReactive
+                        ? {
+                            borderColor: "#e05260",
+                            backgroundColor: "rgba(224, 82, 96, 0.08)",
+                            fontWeight: 600,
+                          }
+                        : {}
+                    }
+                    value={v}
+                    onChange={(e) =>
+                      setBulkForm({
+                        ...bulkForm,
+                        results: {
+                          ...bulkForm.results,
+                          [testType]: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </Col>
+              );
+            })}
+          </Row>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            className="btn-glass"
+            onClick={() =>
+              setBulkForm({
+                ...bulkForm,
+                results: { ...BULK_DEFAULTS },
+              })
+            }
+            title="Reset all 7 fields back to happy-path defaults"
+          >
+            ↻ Reset Defaults
+          </button>
+          <button className="btn-glass" onClick={closeBulkModal}>
+            Cancel
+          </button>
+          <button
+            className="btn-crimson"
+            onClick={submitBulk}
+            disabled={
+              bulkDonationStatus === "invalid" ||
+              bulkDonationStatus === "checking"
+            }
+            style={{
+              opacity:
+                bulkDonationStatus === "invalid" ||
+                bulkDonationStatus === "checking"
+                  ? 0.5
+                  : 1,
+            }}
+          >
+            Submit All 7
           </button>
         </Modal.Footer>
       </Modal>

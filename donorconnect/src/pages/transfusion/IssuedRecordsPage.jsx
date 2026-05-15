@@ -4,25 +4,47 @@ import api from '../../api/axiosInstance'
 import { showSuccess, showError } from '../../components/shared/ui/AlertBanner'
 import IssuedRecordList from '../../components/service/transfusion/IssuedRecordList.jsx'
 
+const PAGE_SIZE = 10
+
 export default function IssuedRecordsPage() {
   const [records, setRecords]       = useState([])
   const [loading, setLoading]       = useState(true)
   const [confirm, setConfirm]       = useState(null)
   const [reactModal, setReactModal] = useState(null)
+
+  // Pagination state
+  const [page, setPage]             = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
   const navigate = useNavigate()
 
-  const load = () => {
+  const load = (currentPage = 0) => {
     setLoading(true)
-    api.get('/api/transfusion/issue?page=0&size=50')
+    api.get(`/api/transfusion/issue?page=${currentPage}&size=${PAGE_SIZE}`)
       .then(r => {
         const data = r.data?.data
-        setRecords(data?.content ?? (Array.isArray(data) ? data : []))
+        if (data?.content) {
+          setRecords(data.content)
+          setTotalPages(data.totalPages ?? 0)
+          setTotalElements(data.totalElements ?? 0)
+        } else {
+          const list = Array.isArray(data) ? data : []
+          setRecords(list)
+          setTotalPages(1)
+          setTotalElements(list.length)
+        }
       })
       .catch(() => setRecords([]))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => load(0), [])
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage)
+    load(newPage)
+  }
 
   const handleReturn        = (issueId) => setConfirm(issueId)
   const handleReturnDismiss = () => setConfirm(null)
@@ -32,7 +54,7 @@ export default function IssuedRecordsPage() {
     try {
       await api.patch(`/api/transfusion/issue/${issueId}/return`)
       showSuccess('Unit returned successfully')
-      load()
+      load(page)
     } catch (e) {
       showError(e.response?.data?.message || 'Return failed')
     }
@@ -48,7 +70,6 @@ export default function IssuedRecordsPage() {
     }
   }
 
-  // Navigate to ReactionsPage with issueId + patientId pre-filled
   const handleLogReaction = ({ issueId, patientId }) => {
     navigate('/dashboard/reactions', {
       state: { prefill: { issueId, patientId } }
@@ -61,6 +82,11 @@ export default function IssuedRecordsPage() {
       loading={loading}
       confirm={confirm}
       reactModal={reactModal}
+      page={page}
+      totalPages={totalPages}
+      totalElements={totalElements}
+      pageSize={PAGE_SIZE}
+      onPageChange={handlePageChange}
       onReturn={handleReturn}
       onReturnDismiss={handleReturnDismiss}
       onReturnConfirm={handleReturnConfirm}
