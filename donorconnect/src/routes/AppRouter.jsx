@@ -59,11 +59,11 @@ import ReactionsPage from '../pages/safety/ReactionsPage';
 import LookbackPage from '../pages/safety/LookbackPage';
 import BillingPage from '../pages/billing/BillingPage';
 
-// Donor Portal
-import DonorDashboardPage from '../pages/donor-portal/DonorDashboardPage';
-import DonorProfilePage from '../pages/donor-portal/DonorProfilePage';
-import DonorHistoryPage from '../pages/donor-portal/DonorHistoryPage';
-import DonorNotificationsPage from '../pages/donor-portal/DonorNotificationsPage';
+// // Donor Portal
+// import DonorDashboardPage from '../pages/donor-portal/DonorDashboardPage';
+// import DonorProfilePage from '../pages/donor-portal/DonorProfilePage';
+// import DonorHistoryPage from '../pages/donor-portal/DonorHistoryPage';
+// import DonorNotificationsPage from '../pages/donor-portal/DonorNotificationsPage';
 
 const ADMIN = ['ROLE_ADMIN'];
 const RECEPTION = ['ROLE_ADMIN', 'ROLE_RECEPTION'];
@@ -146,12 +146,12 @@ export default function AppRouter() {
             </Route>
 
             {/* Donor Portal */}
-            <Route element={<RoleGuard allowed={DONOR} />}>
+            {/* <Route element={<RoleGuard allowed={DONOR} />}>
               <Route path="/dashboard/my" element={<DonorDashboardPage />} />
               <Route path="/dashboard/my/profile" element={<DonorProfilePage />} />
               <Route path="/dashboard/my/history" element={<DonorHistoryPage />} />
               <Route path="/dashboard/my/notifications" element={<DonorNotificationsPage />} />
-            </Route>
+            </Route> */}
 
             {/* All roles */}
             <Route path="/dashboard/notifications" element={<NotificationsPage />} />
