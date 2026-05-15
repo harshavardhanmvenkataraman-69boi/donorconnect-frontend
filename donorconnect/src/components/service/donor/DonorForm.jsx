@@ -8,10 +8,13 @@ const DONOR_TYPES  = ['VOLUNTARY', 'REPLACEMENT', 'STUDENT', 'CORPORATE']
 const TYPE_LABELS  = { VOLUNTARY: 'Voluntary', REPLACEMENT: 'Replacement', STUDENT: 'Student', CORPORATE: 'Corporate' }
 const BLOOD_COLOR  = { 'A+': '#e53935', 'A−': '#ef9a9a', 'B+': '#e65100', 'B−': '#ffb74d', 'AB+': '#6a1b9a', 'AB−': '#ba68c8', 'O+': '#1565c0', 'O−': '#64b5f6' }
 
-// Required fields and their labels
 const REQUIRED = [
   { key: 'name',        label: 'Full Name',     check: f => !!f.name?.trim() },
-  { key: 'dob',         label: 'Date of Birth', check: f => !!f.dob },
+  { key: 'dob',         label: 'Date of Birth (must be 18+)', check: f => {
+    if (!f.dob) return false
+    const age = (Date.now() - new Date(f.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    return age >= 18
+  }},
   { key: 'gender',      label: 'Gender',        check: f => !!f.gender },
   { key: 'contactInfo', label: 'Contact',       check: f => !!f.contactInfo?.trim() },
   { key: 'bloodGroup',  label: 'Blood Group',   check: f => !!f.bloodGroup },
@@ -29,17 +32,17 @@ export default function DonorForm({ donorId, form, address, loading, fetching, o
   const bloodLabel = form.bloodGroup + (form.rhFactor === 'POSITIVE' ? '+' : '−')
   const bloodBg    = BLOOD_COLOR[bloodLabel] || '#c62828'
 
-  // Check which required fields are missing
   const missingFields = [
     ...REQUIRED.filter(r => !r.check(form)).map(r => r.label),
     ...REQUIRED_ADDR.filter(r => !r.check(address)).map(r => r.label),
   ]
   const allFilled = missingFields.length === 0
 
-  // Progress pct
   const totalRequired = REQUIRED.length + REQUIRED_ADDR.length
   const filledCount   = totalRequired - missingFields.length
   const pct           = Math.round((filledCount / totalRequired) * 100)
+
+  const maxDob = new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   if (fetching) {
     return (
@@ -70,7 +73,7 @@ export default function DonorForm({ donorId, form, address, loading, fetching, o
         )}
       </div>
 
-      {/* Progress bar — live, updates on every keystroke */}
+      {/* Progress bar */}
       <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 500 }}>Form Progress</span>
@@ -100,15 +103,23 @@ export default function DonorForm({ donorId, form, address, loading, fetching, o
               <div className="row g-3">
                 <div className="col-md-6">
                   <DsField label="Full Name" required>
-                    <DsInput value={form.name} onChange={e => onFormChange('name', e.target.value)} placeholder="e.g. Arjun Sharma"
-                      style={!form.name?.trim() ? { borderColor: '#ffcdd2' } : {}} />
+                    <DsInput
+                      value={form.name}
+                      onChange={e => onFormChange('name', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                      placeholder="e.g. Arjun Sharma"
+                      style={!form.name?.trim() ? { borderColor: '#ffcdd2' } : {}}
+                    />
                   </DsField>
                 </div>
                 <div className="col-md-6">
-                  <DsField label="Date of Birth" required>
-                    <DsInput type="date" value={form.dob} onChange={e => onFormChange('dob', e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
-                      style={!form.dob ? { borderColor: '#ffcdd2' } : {}} />
+                  <DsField label="Date of Birth" required hint="Donor must be at least 18 years old">
+                    <DsInput
+                      type="date"
+                      value={form.dob}
+                      onChange={e => onFormChange('dob', e.target.value)}
+                      max={maxDob}
+                      style={!form.dob || (Date.now() - new Date(form.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000) < 18 ? { borderColor: '#ffcdd2' } : {}}
+                    />
                   </DsField>
                 </div>
                 <div className="col-md-6">
@@ -187,21 +198,37 @@ export default function DonorForm({ donorId, form, address, loading, fetching, o
                 </div>
                 <div className="col-md-4">
                   <DsField label="City" required>
-                    <DsInput value={address.city} onChange={e => onAddressChange('city', e.target.value)} placeholder="Chennai"
-                      style={!address.city?.trim() ? { borderColor: '#ffcdd2' } : {}} />
+                    <DsInput
+                      value={address.city}
+                      onChange={e => onAddressChange('city', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                      placeholder="Chennai"
+                      style={!address.city?.trim() ? { borderColor: '#ffcdd2' } : {}}
+                    />
                   </DsField>
                 </div>
                 <div className="col-md-4">
                   <DsField label="State" required>
-                    <DsInput value={address.state} onChange={e => onAddressChange('state', e.target.value)} placeholder="Tamil Nadu"
-                      style={!address.state?.trim() ? { borderColor: '#ffcdd2' } : {}} />
+                    <DsInput
+                      value={address.state}
+                      onChange={e => onAddressChange('state', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                      placeholder="Tamil Nadu"
+                      style={!address.state?.trim() ? { borderColor: '#ffcdd2' } : {}}
+                    />
                   </DsField>
                 </div>
                 <div className="col-md-4">
                   <DsField label="Pincode" required>
-                    <DsInput value={address.pincode} onChange={e => onAddressChange('pincode', e.target.value)} placeholder="600001"
-                      maxLength={6} pattern="[0-9]{6}"
-                      style={!address.pincode?.trim() ? { borderColor: '#ffcdd2' } : {}} />
+                    <DsInput
+                      type="text"
+                      inputMode="numeric"
+                      value={address.pincode}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '')
+                        if (val.length <= 6) onAddressChange('pincode', val)
+                      }}
+                      placeholder="600001"
+                      style={!address.pincode?.trim() ? { borderColor: '#ffcdd2' } : {}}
+                    />
                   </DsField>
                 </div>
               </div>
@@ -210,7 +237,7 @@ export default function DonorForm({ donorId, form, address, loading, fetching, o
 
         </div>
 
-        {/* Missing fields warning before submit */}
+        {/* Missing fields warning */}
         {!allFilled && (
           <div style={{ marginTop: '0.75rem', background: '#fff3e0', border: '1.5px solid #ffe0b2', borderRadius: 10, padding: '0.6rem 1rem', fontSize: '0.78rem', color: '#e65100' }}>
             ⚠ Please fill in all required fields before submitting: <strong>{missingFields.join(', ')}</strong>
