@@ -38,7 +38,7 @@ import ScreeningPage from '../pages/donor-service/ScreeningPage';
 import DonationsPage from '../pages/blood-supply/DonationsPage';
 import BloodComponentsPage from '../pages/blood-supply/BloodComponentsPage';
 import TestResultsPage from '../pages/blood-supply/TestResultsPage';
-import QuarantineRecallPage from '../pages/blood-supply/QuarantineRecallPage';
+import QuarantineDisposalPage from '../pages/blood-supply/QuarantineDisposalPage';
 import LabDashboardPage from '../pages/blood-supply/LabDashboardPage';
 
 // Inventory
@@ -119,7 +119,7 @@ export default function AppRouter() {
               <Route path="/dashboard/donations" element={<DonationsPage />} />
               <Route path="/dashboard/components" element={<BloodComponentsPage />} />
               <Route path="/dashboard/test-results" element={<TestResultsPage />} />
-              <Route path="/dashboard/quarantine" element={<QuarantineRecallPage />} />
+              <Route path="/dashboard/quarantine" element={<QuarantineDisposalPage />} />
             </Route>
 
             {/* Inventory */}

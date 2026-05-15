@@ -5,7 +5,6 @@ import { DsField, DsInput } from '../../shared/donor-service/DsField'
 import { DsBtnPrimary, DsBtnGhost, DsBtnInline } from '../../shared/donor-service/DsButtons'
 import { StatusPill } from '../../shared/donor-service/DsBadges'
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_TRANSITIONS = {
   PLANNED:   ['ACTIVE', 'CANCELLED'],
   ACTIVE:    ['COMPLETED', 'CANCELLED'],
@@ -36,9 +35,9 @@ const STAT_CONFIG = [
 ]
 
 const STATUS_BTN = {
-  ACTIVE:    { label: '▶ Mark Active',    color: '#2e7d32', bg: '#e8f5e9', hoverBg: '#2e7d32' },
-  COMPLETED: { label: '✓ Mark Completed', color: '#6a1b9a', bg: '#f3e5f5', hoverBg: '#6a1b9a' },
-  CANCELLED: { label: '✕ Cancel Drive',   color: '#555',    bg: '#f5f5f5', hoverBg: '#555'    },
+  ACTIVE:    { label: '▶ Mark Active',    color: '#2e7d32', bg: '#e8f5e9' },
+  COMPLETED: { label: '✓ Mark Completed', color: '#6a1b9a', bg: '#f3e5f5' },
+  CANCELLED: { label: '✕ Cancel Drive',   color: '#555',    bg: '#f5f5f5' },
 }
 
 // ─── Drive Form Modal ─────────────────────────────────────────────────────────
@@ -64,12 +63,7 @@ function DriveFormModal({ form, setForm, editId, onClose, onSave, saving }) {
     >
       <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
         <DsField label="Drive Name" required>
-          <DsInput
-            value={form.name}
-            onChange={setF('name')}
-            placeholder="e.g. World Blood Donor Day Drive"
-            autoFocus
-          />
+          <DsInput value={form.name} onChange={setF('name')} placeholder="e.g. World Blood Donor Day Drive" autoFocus />
         </DsField>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <DsField label="Location">
@@ -108,7 +102,6 @@ function DriveStatusModal({ drive, onClose, onUpdateStatus, updating }) {
           <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#bbb' }}>Current</span>
           <StatusPill status={drive.status} />
         </div>
-
         {transitions.length === 0 ? (
           <div style={{ background: '#e3f2fd', border: '1px solid #bbdefb', borderRadius: 10, padding: '0.75rem 1rem', fontSize: '0.83rem', color: '#1565c0' }}>
             This drive is <strong>{drive.status}</strong> — no further status changes are possible.
@@ -119,22 +112,11 @@ function DriveStatusModal({ drive, onClose, onUpdateStatus, updating }) {
             {transitions.map(s => {
               const cfg = STATUS_BTN[s] || { label: s, color: '#555', bg: '#f5f5f5' }
               return (
-                <button
-                  key={s}
-                  disabled={!!updating}
-                  onClick={() => onUpdateStatus(s)}
-                  style={{
-                    padding: '10px 16px', border: 'none', borderRadius: 10,
-                    background: cfg.bg, color: cfg.color,
-                    fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                    transition: 'all 0.15s', opacity: updating ? 0.6 : 1,
-                  }}
-                >
+                <button key={s} disabled={!!updating} onClick={() => onUpdateStatus(s)}
+                  style={{ padding: '10px 16px', border: 'none', borderRadius: 10, background: cfg.bg, color: cfg.color, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.15s', opacity: updating ? 0.6 : 1 }}>
                   {updating === s
                     ? <><span style={{ width: 14, height: 14, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'drive-spin 0.7s linear infinite' }} /> Updating…</>
-                    : cfg.label
-                  }
+                    : cfg.label}
                 </button>
               )
             })}
@@ -152,24 +134,38 @@ function DriveAppointmentsModal({
 }) {
   const fmtDT = (v) => v ? new Date(v).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 
+  // capacity calculations
+  const activeCount = appointments.filter(a => !['CANCELLED', 'NO_SHOW'].includes(a.status)).length
+  const isFull      = drive.capacity != null && activeCount >= drive.capacity
+  const slotsLeft   = drive.capacity != null ? Math.max(0, drive.capacity - activeCount) : null
+
+  const subtitleCapacity = slotsLeft != null
+    ? (isFull ? ' · ⛔ Fully booked' : ` · ${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left`)
+    : ''
+
   return (
     <DsModal
       show
       size="xl"
       onClose={onClose}
-      title={`Appointments — ${drive.name}`}
-      subtitle={`${drive.scheduledDate} · ${drive.location || 'No location'} · ${appointments.length} booking${appointments.length !== 1 ? 's' : ''}`}
+      title={'Appointments — ' + drive.name}
+      subtitle={drive.scheduledDate + ' · ' + (drive.location || 'No location') + ' · ' + appointments.length + ' booking' + (appointments.length !== 1 ? 's' : '') + subtitleCapacity}
       headerRight={
         drive.status === 'ACTIVE' && (
           <button
             onClick={onBookClick}
+            disabled={isFull}
+            title={isFull ? 'This drive is fully booked' : 'Book an appointment'}
             style={{
               padding: '5px 14px', border: 'none', borderRadius: 7,
-              background: '#c62828', color: 'white',
-              fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+              background: isFull ? '#e0e0e0' : '#c62828',
+              color: isFull ? '#999' : 'white',
+              fontSize: '0.8rem', fontWeight: 700,
+              cursor: isFull ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
             }}
           >
-            + Book
+            {isFull ? '⛔ Full' : '+ Book'}
           </button>
         )
       }
@@ -204,11 +200,7 @@ function DriveAppointmentsModal({
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                       {(APPT_ACTIONS[a.status] || []).map(ac => (
-                        <DsBtnInline
-                          key={ac.endpoint}
-                          loading={actioning === a.appointmentId + ac.endpoint}
-                          onClick={() => onAction(a.appointmentId, ac.endpoint)}
-                        >
+                        <DsBtnInline key={ac.endpoint} loading={actioning === a.appointmentId + ac.endpoint} onClick={() => onAction(a.appointmentId, ac.endpoint)}>
                           {ac.label}
                         </DsBtnInline>
                       ))}
@@ -222,7 +214,6 @@ function DriveAppointmentsModal({
         )}
       </div>
 
-      {/* Nested book modal */}
       {showBook && (
         <DsModal
           show
@@ -230,7 +221,7 @@ function DriveAppointmentsModal({
           zIndex={10000}
           onClose={() => onBookClick(false)}
           title="Book Appointment"
-          subtitle={`Drive #${drive.driveId} · Donor must be ACTIVE`}
+          subtitle={'Drive #' + drive.driveId + ' · Donor must be ACTIVE'}
           footer={
             <>
               <DsBtnGhost onClick={() => onBookClick(false)} disabled={savingBook}>Cancel</DsBtnGhost>
@@ -286,87 +277,48 @@ export default function DriveList({
         @keyframes drive-spin { to { transform: rotate(360deg); } }
         @keyframes drive-fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
         .drive-root { animation: drive-fadein 0.3s ease both; }
-
-        /* Stat cards */
         .drive-stat-grid { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-        .drive-stat-card {
-          flex: 1; min-width: 100px;
-          border-radius: 14px; padding: 1rem 1.1rem;
-          display: flex; flex-direction: column; gap: 3px;
-          cursor: default;
-          transition: transform 0.15s, box-shadow 0.15s;
-        }
+        .drive-stat-card { flex: 1; min-width: 100px; border-radius: 14px; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 3px; cursor: default; transition: transform 0.15s, box-shadow 0.15s; }
         .drive-stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .drive-stat-value { font-size: 1.75rem; font-weight: 800; line-height: 1; }
         .drive-stat-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; opacity: 0.7; }
-
-        /* Tab bar */
         .drive-tab-bar { display: flex; gap: 0; border-bottom: 2px solid #f0f0f8; margin-bottom: 1.25rem; overflow-x: auto; }
-        .drive-tab {
-          padding: 0.6rem 1.15rem; border: none; background: none;
-          font-size: 0.84rem; font-weight: 500; color: #999;
-          cursor: pointer; transition: all 0.15s; white-space: nowrap;
-          border-bottom: 2.5px solid transparent; margin-bottom: -2px;
-        }
+        .drive-tab { padding: 0.6rem 1.15rem; border: none; background: none; font-size: 0.84rem; font-weight: 500; color: #999; cursor: pointer; transition: all 0.15s; white-space: nowrap; border-bottom: 2.5px solid transparent; margin-bottom: -2px; }
         .drive-tab:hover { color: #c62828; }
         .drive-tab.active { color: #c62828; border-bottom-color: #c62828; font-weight: 700; }
       `}</style>
 
       <div className="drive-root">
         <PageHeader title="Blood Drives">
-          {isAdmin && (
-            <button className="btn-crimson" onClick={onShowCreate}>+ Create Drive</button>
-          )}
+          {isAdmin && <button className="btn-crimson" onClick={onShowCreate}>+ Create Drive</button>}
         </PageHeader>
 
-        {/* Stat cards */}
         <div className="drive-stat-grid">
           {STAT_CONFIG.map(({ label, key, accent, bg }) => (
             <div key={label} className="drive-stat-card" style={{ background: bg }}>
-              <span className="drive-stat-value" style={{ color: accent }}>
-                {key === null ? drives.length : counts(key)}
-              </span>
+              <span className="drive-stat-value" style={{ color: accent }}>{key === null ? drives.length : counts(key)}</span>
               <span className="drive-stat-label" style={{ color: accent }}>{label}</span>
             </div>
           ))}
         </div>
 
-        {/* Tab bar */}
         <div className="drive-tab-bar">
           {TABS.map(t => (
-            <button
-              key={t.key}
-              className={`drive-tab${tab === t.key ? ' active' : ''}`}
-              onClick={() => onTabChange(t.key)}
-            >
+            <button key={t.key} className={'drive-tab' + (tab === t.key ? ' active' : '')} onClick={() => onTabChange(t.key)}>
               {t.label}
             </button>
           ))}
         </div>
 
-        {/* Table */}
         <div className="table-wrapper">
-          <DataTable
-            columns={columns}
-            data={displayDrives}
-            loading={loading}
+          <DataTable columns={columns} data={displayDrives} loading={loading}
             actions={row => (
               <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                 <DsBtnInline onClick={() => onApptDrive(row)}>Appointments</DsBtnInline>
                 {isAdmin && (
                   <>
-                    <DsBtnInline
-                      disabled={row.status === 'COMPLETED' || row.status === 'CANCELLED'}
-                      onClick={() => onEditDrive(row)}
-                    >
-                      Edit
-                    </DsBtnInline>
-                    <DsBtnInline
-                      disabled={STATUS_TRANSITIONS[row.status]?.length === 0}
-                      onClick={() => onStatusDrive(row)}
-                    >
-                      Status ▾
-                    </DsBtnInline>
+                    <DsBtnInline disabled={row.status === 'COMPLETED' || row.status === 'CANCELLED'} onClick={() => onEditDrive(row)}>Edit</DsBtnInline>
+                    <DsBtnInline disabled={STATUS_TRANSITIONS[row.status]?.length === 0} onClick={() => onStatusDrive(row)}>Status ▾</DsBtnInline>
                   </>
                 )}
               </div>
@@ -375,26 +327,9 @@ export default function DriveList({
         </div>
       </div>
 
-      {/* Modals */}
-      {showCreate && (
-        <DriveFormModal
-          form={driveForm} setForm={setDriveForm}
-          onClose={onCloseCreate} onSave={onSaveDrive} saving={savingDrive}
-        />
-      )}
-      {editDrive && (
-        <DriveFormModal
-          form={driveForm} setForm={setDriveForm}
-          editId={editDrive.driveId}
-          onClose={onCloseEdit} onSave={onSaveEdit} saving={savingEdit}
-        />
-      )}
-      {statusDrive && (
-        <DriveStatusModal
-          drive={statusDrive} updating={statusUpdating}
-          onClose={onCloseStatus} onUpdateStatus={onUpdateStatus}
-        />
-      )}
+      {showCreate && <DriveFormModal form={driveForm} setForm={setDriveForm} onClose={onCloseCreate} onSave={onSaveDrive} saving={savingDrive} />}
+      {editDrive  && <DriveFormModal form={driveForm} setForm={setDriveForm} editId={editDrive.driveId} onClose={onCloseEdit} onSave={onSaveEdit} saving={savingEdit} />}
+      {statusDrive && <DriveStatusModal drive={statusDrive} updating={statusUpdating} onClose={onCloseStatus} onUpdateStatus={onUpdateStatus} />}
       {apptDrive && (
         <DriveAppointmentsModal
           drive={apptDrive} appointments={appointments} loadingAppts={loadingAppts}
