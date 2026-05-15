@@ -201,7 +201,6 @@ export default function DeferralList({
 
       <div className="def-root">
         <PageHeader title="Deferral Management">
-          <button className="btn btn-danger btn-sm" onClick={onShowCreate}>+ Issue Deferral</button>
         </PageHeader>
 
         <div className="def-tab-bar">
