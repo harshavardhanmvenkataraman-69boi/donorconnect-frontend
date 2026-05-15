@@ -4,10 +4,11 @@ import api from "../../api/axiosInstance";
 import PageHeader from "../../components/shared/ui/PageHeader";
 import DataTable from "../../components/shared/ui/DataTable";
 import StatusBadge from "../../components/shared/ui/StatusBadge";
+import ConfirmModal from "../../components/shared/ui/ConfirmModal";
 import { showSuccess, showError } from "../../components/shared/ui/AlertBanner";
 
+// Component-ID-based modal forms.
 const INIT_Q = { componentId: "", reason: "", startDate: "" };
-const INIT_R = { donationId: "", componentId: "", reason: "", noticeDate: "" };
 const INIT_D = {
   componentId: "",
   disposalReason: "",
@@ -16,18 +17,27 @@ const INIT_D = {
   disposalDate: "",
 };
 
-export default function QuarantineRecallPage() {
+/**
+ * Quarantine & Disposal page.
+ *
+ * Two tabs:
+ *   - Quarantine: list of active/historical quarantine actions.
+ *     Each active row has Release and Dispose actions.
+ *   - Disposals: list of all disposal records (audit log).
+ *
+ * Both forms verify the Component ID in real time before allowing submit.
+ */
+export default function QuarantineDisposalPage() {
   const [tab, setTab] = useState("quarantine");
   const [quarantines, setQuarantines] = useState([]);
-  const [recalls, setRecalls] = useState([]);
   const [disposals, setDisposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [qForm, setQForm] = useState(INIT_Q);
-  const [rForm, setRForm] = useState(INIT_R);
   const [dForm, setDForm] = useState(INIT_D);
+  const [confirmDispose, setConfirmDispose] = useState(null); // qaId being disposed from quarantine tab
 
-  // Component ID verification (used for quarantine and disposal)
+  // Component ID verification (used by both quarantine + disposal forms)
   const [componentStatus, setComponentStatus] = useState("idle");
   const debounceRef = useRef(null);
 
@@ -42,15 +52,7 @@ export default function QuarantineRecallPage() {
       .catch(() => setQuarantines([]))
       .finally(() => setLoading(false));
   };
-  const loadR = () => {
-    api
-      .get("/api/recalls")
-      .then((r) => {
-        const d = r.data?.data;
-        setRecalls(Array.isArray(d) ? d : (d?.content ?? []));
-      })
-      .catch(() => setRecalls([]));
-  };
+
   const loadD = () => {
     api
       .get("/api/disposal")
@@ -60,13 +62,12 @@ export default function QuarantineRecallPage() {
       })
       .catch(() => setDisposals([]));
   };
+
   useEffect(() => {
     loadQ();
-    loadR();
     loadD();
   }, []);
 
-  // Real-time component check — GET /api/components/{id}
   const checkComponent = (id) => {
     if (!id) {
       setComponentStatus("idle");
@@ -87,7 +88,6 @@ export default function QuarantineRecallPage() {
   const closeModal = () => {
     setShowModal(false);
     setQForm(INIT_Q);
-    setRForm(INIT_R);
     setDForm(INIT_D);
     setComponentStatus("idle");
   };
@@ -95,18 +95,23 @@ export default function QuarantineRecallPage() {
   const release = async (qaId) => {
     try {
       await api.patch(`/api/quarantine/${qaId}/release`);
-      showSuccess("Released");
+      showSuccess("Released back to AVAILABLE");
       loadQ();
     } catch (e) {
       showError(e?.response?.data?.message || "Failed");
     }
   };
 
-  const closeRecall = async (recallId) => {
+  const disposeFromQuarantine = async (qa) => {
     try {
-      await api.patch(`/api/recalls/${recallId}/close`);
-      showSuccess("Recall closed");
-      loadR();
+      await api.post("/api/disposal", {
+        componentId: qa.componentId,
+        disposalReason: "Confirmed unsafe from quarantine review",
+        witness: "supervisor",
+      });
+      showSuccess("Component disposed");
+      loadQ();
+      loadD();
     } catch (e) {
       showError(e?.response?.data?.message || "Failed");
     }
@@ -143,30 +148,6 @@ export default function QuarantineRecallPage() {
     }
   };
 
-  const addR = async () => {
-    if (!rForm.reason.trim()) {
-      showError("Reason is required");
-      return;
-    }
-    if (!rForm.donationId && !rForm.componentId) {
-      showError("At least Donation ID or Component ID is required");
-      return;
-    }
-    try {
-      await api.post("/api/recalls", {
-        donationId: rForm.donationId ? Number(rForm.donationId) : undefined,
-        componentId: rForm.componentId ? Number(rForm.componentId) : undefined,
-        reason: rForm.reason.trim(),
-        noticeDate: rForm.noticeDate || undefined,
-      });
-      showSuccess("Recall issued");
-      closeModal();
-      loadR();
-    } catch (e) {
-      showError(e?.response?.data?.message || "Failed");
-    }
-  };
-
   const addD = async () => {
     if (!dForm.componentId) {
       showError("Component ID is required");
@@ -188,9 +169,10 @@ export default function QuarantineRecallPage() {
         notes: dForm.notes || undefined,
         disposalDate: dForm.disposalDate || undefined,
       });
-      showSuccess("Disposal recorded");
+      showSuccess("Disposal recorded — component marked DISPOSED");
       closeModal();
       loadD();
+      loadQ();
     } catch (e) {
       showError(e?.response?.data?.message || "Failed");
     }
@@ -217,19 +199,7 @@ export default function QuarantineRecallPage() {
       render: (v) => <StatusBadge status={v} />,
     },
     { key: "startDate", label: "Start Date", render: (v) => v || "—" },
-    { key: "releasedDate", label: "Released Date", render: (v) => v || "—" },
-  ];
-  const rCols = [
-    { key: "recallId", label: "ID" },
-    { key: "donationId", label: "Donation ID", render: (v) => v || "—" },
-    { key: "componentId", label: "Component ID", render: (v) => v || "—" },
-    { key: "reason", label: "Reason" },
-    {
-      key: "status",
-      label: "Status",
-      render: (v) => <StatusBadge status={v} />,
-    },
-    { key: "noticeDate", label: "Notice Date", render: (v) => v || "—" },
+    { key: "releasedDate", label: "Resolved Date", render: (v) => v || "—" },
   ];
   const dCols = [
     { key: "disposalId", label: "ID" },
@@ -244,42 +214,48 @@ export default function QuarantineRecallPage() {
     },
   ];
 
-  const addLabel =
-    tab === "quarantine"
-      ? "+ Add Quarantine"
-      : tab === "recalls"
-        ? "+ Issue Recall"
-        : "+ Record Disposal";
-
-  const isComponentTab = tab === "quarantine" || tab === "disposals";
   const submitDisabled =
-    isComponentTab &&
-    (componentStatus === "invalid" || componentStatus === "checking");
+    componentStatus === "invalid" || componentStatus === "checking";
 
   return (
     <div className="animate-fadein">
-      <PageHeader title="Quarantine, Recalls & Disposal">
+      <PageHeader title="Quarantine & Disposal">
         <button
           className="btn-crimson"
           onClick={() => {
-            setComponentStatus("idle");
             setShowModal(true);
           }}
         >
-          {addLabel}
+          + {tab === "quarantine" ? "Add Quarantine" : "Record Disposal"}
         </button>
       </PageHeader>
-      <div className="nav-tabs-glass mb-4">
-        {["quarantine", "recalls", "disposals"].map((t) => (
+
+      <div
+        className="alert-glass mb-3"
+        style={{ fontSize: "0.82rem", borderLeft: "4px solid #6c8eef" }}
+      >
+        Quarantine holds a component aside while it's reviewed. From here a
+        supervisor can either <strong>Release</strong> it back to AVAILABLE
+        (e.g., after a re-test cleared it) or <strong>Dispose</strong> it
+        (confirmed unsafe). Reactive donations automatically place their
+        components in quarantine — no manual action needed.
+      </div>
+
+      <div className="nav-tabs-glass mb-3">
+        {[
+          ["quarantine", "Quarantine"],
+          ["disposals", "Disposals"],
+        ].map(([k, label]) => (
           <button
-            key={t}
-            className={`nav-link${tab === t ? " active" : ""}`}
-            onClick={() => setTab(t)}
+            key={k}
+            className={`nav-link${tab === k ? " active" : ""}`}
+            onClick={() => setTab(k)}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {label}
           </button>
         ))}
       </div>
+
       <div className="table-wrapper">
         {tab === "quarantine" && (
           <DataTable
@@ -288,26 +264,22 @@ export default function QuarantineRecallPage() {
             loading={loading}
             actions={(row) =>
               row.status === "QUARANTINED" ? (
-                <button className="btn-glass" onClick={() => release(row.qaId)}>
-                  Release
-                </button>
-              ) : null
-            }
-          />
-        )}
-        {tab === "recalls" && (
-          <DataTable
-            columns={rCols}
-            data={recalls}
-            loading={false}
-            actions={(row) =>
-              row.status === "OPEN" ? (
-                <button
-                  className="btn-glass"
-                  onClick={() => closeRecall(row.recallId)}
-                >
-                  Close
-                </button>
+                <div className="d-flex gap-2">
+                  <button
+                    className="btn-glass"
+                    title="Release back to AVAILABLE"
+                    onClick={() => release(row.qaId)}
+                  >
+                    Release
+                  </button>
+                  <button
+                    className="btn-icon danger"
+                    title="Dispose (confirmed unsafe)"
+                    onClick={() => setConfirmDispose(row)}
+                  >
+                    🗑 Dispose
+                  </button>
+                </div>
               ) : null
             }
           />
@@ -320,11 +292,7 @@ export default function QuarantineRecallPage() {
       <Modal show={showModal} onHide={closeModal} centered>
         <Modal.Header closeButton>
           <Modal.Title>
-            {tab === "quarantine"
-              ? "Add Quarantine"
-              : tab === "recalls"
-                ? "Issue Recall Notice"
-                : "Record Disposal"}
+            {tab === "quarantine" ? "Add Quarantine" : "Record Disposal"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -368,6 +336,7 @@ export default function QuarantineRecallPage() {
                   onChange={(e) =>
                     setQForm({ ...qForm, reason: e.target.value })
                   }
+                  placeholder="e.g. Donor reported illness after donation, equipment malfunction, etc."
                 />
               </Col>
               <Col xs={12}>
@@ -378,56 +347,6 @@ export default function QuarantineRecallPage() {
                   value={qForm.startDate}
                   onChange={(e) =>
                     setQForm({ ...qForm, startDate: e.target.value })
-                  }
-                />
-              </Col>
-            </Row>
-          )}
-          {tab === "recalls" && (
-            <Row className="g-3">
-              <Col xs={6}>
-                <label className="form-label">Donation ID</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={rForm.donationId}
-                  onChange={(e) =>
-                    setRForm({ ...rForm, donationId: e.target.value })
-                  }
-                />
-              </Col>
-              <Col xs={6}>
-                <label className="form-label">Component ID</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={rForm.componentId}
-                  onChange={(e) =>
-                    setRForm({ ...rForm, componentId: e.target.value })
-                  }
-                />
-              </Col>
-              <Col xs={12}>
-                <label className="form-label">
-                  Reason <span className="text-danger">*</span>
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={rForm.reason}
-                  onChange={(e) =>
-                    setRForm({ ...rForm, reason: e.target.value })
-                  }
-                />
-              </Col>
-              <Col xs={12}>
-                <label className="form-label">Notice Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={rForm.noticeDate}
-                  onChange={(e) =>
-                    setRForm({ ...rForm, noticeDate: e.target.value })
                   }
                 />
               </Col>
@@ -515,9 +434,7 @@ export default function QuarantineRecallPage() {
           </button>
           <button
             className="btn-crimson"
-            onClick={
-              tab === "quarantine" ? addQ : tab === "recalls" ? addR : addD
-            }
+            onClick={tab === "quarantine" ? addQ : addD}
             disabled={submitDisabled}
             style={{ opacity: submitDisabled ? 0.5 : 1 }}
           >
@@ -525,6 +442,17 @@ export default function QuarantineRecallPage() {
           </button>
         </Modal.Footer>
       </Modal>
+
+      <ConfirmModal
+        show={!!confirmDispose}
+        onHide={() => setConfirmDispose(null)}
+        title="Confirm Disposal"
+        message={`Dispose component ${confirmDispose?.componentId}? This is permanent and creates an audit record.`}
+        onConfirm={() => {
+          disposeFromQuarantine(confirmDispose);
+          setConfirmDispose(null);
+        }}
+      />
     </div>
   );
 }
