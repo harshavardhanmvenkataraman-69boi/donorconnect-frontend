@@ -102,11 +102,11 @@ export default function AppointmentsPage() {
     }
 
     const payload = {
-      donorId:  Number(form.donorId),
-      dateTime: form.dateTime,
-      driveId:  form.driveId  ? Number(form.driveId)  : null,
-      centerId: form.centerId ? Number(form.centerId) : null,
-    }
+  donorId:  Number(form.donorId),
+  dateTime: form.dateTime + 'T23:59:00',
+  driveId:  form.driveId  ? Number(form.driveId)  : null,
+  centerId: form.centerId ? Number(form.centerId) : null,
+}
     try {
       await api.post('/api/appointments', payload)
       showSuccess('Appointment booked')
