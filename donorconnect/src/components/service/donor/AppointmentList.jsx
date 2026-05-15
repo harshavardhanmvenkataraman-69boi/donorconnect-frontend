@@ -69,6 +69,8 @@ function BookModal({ drives, onClose, onBook, donorStatus, donorName, onDonorIdC
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
   const upcoming = drives.filter(d => d.status === 'ACTIVE' || d.status === 'PLANNED')
 
+  const selectedDrive = upcoming.find(d => d.driveId === Number(form.driveId))
+
   const handleDonorIdChange = (e) => {
     const val = e.target.value
     setForm(f => ({ ...f, donorId: val }))
@@ -125,14 +127,15 @@ function BookModal({ drives, onClose, onBook, donorStatus, donorName, onDonorIdC
         </DsField>
 
         {/* Date & Time */}
-        <DsField label="Date & Time" required hint="Cannot be in the past">
-          <DsInput
-            type="datetime-local"
-            value={form.dateTime}
-            onChange={set('dateTime')}
-            min={new Date().toISOString().slice(0, 16)}
-          />
-        </DsField>
+        <DsField label="Date" required hint={selectedDrive ? 'Must be on ' + selectedDrive.scheduledDate : 'Cannot be in the past'}>
+  <DsInput
+    type="date"
+    value={form.dateTime}
+    onChange={set('dateTime')}
+    min={selectedDrive ? selectedDrive.scheduledDate : new Date().toISOString().split('T')[0]}
+    max={selectedDrive ? selectedDrive.scheduledDate : undefined}
+  />
+</DsField>
 
         {/* Blood Drive */}
         <DsField label="Blood Drive" hint="Optional — leave blank for walk-in">

@@ -234,7 +234,7 @@ function DriveAppointmentsModal({
               <DsInput type="number" value={bookForm.donorId} onChange={e => setBookForm(f => ({ ...f, donorId: e.target.value }))} placeholder="e.g. 42" autoFocus />
             </DsField>
             <DsField label="Date & Time" required hint="Cannot be in the past">
-              <DsInput type="datetime-local" value={bookForm.dateTime} onChange={e => setBookForm(f => ({ ...f, dateTime: e.target.value }))} min={new Date().toISOString().slice(0, 16)} />
+              <DsInput type="datetime-local" value={bookForm.dateTime} onChange={e => setBookForm(f => ({ ...f, dateTime: e.target.value }))}  min={drive.scheduledDate + 'T00:00'} max={drive.scheduledDate + 'T23:59'}/>
             </DsField>
             <DsField label="Center ID" hint="Optional">
               <DsInput type="number" value={bookForm.centerId} onChange={e => setBookForm(f => ({ ...f, centerId: e.target.value }))} placeholder="Leave blank if N/A" />
@@ -340,4 +340,4 @@ export default function DriveList({
       )}
     </>
   )
-}
+}   
